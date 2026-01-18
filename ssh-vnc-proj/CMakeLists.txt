@@ -54,7 +54,7 @@ add_dependencies(${LIB_NAME} ${SDK_LIB_NAME})
 # 链接库：补回md4c（MD渲染刚需），删除pulse（冗余）
 target_link_libraries(${LIB_NAME} PRIVATE
     ${SDK_LIB_NAME}
-    ssh2 vncclient vncserver z magic md4c
+    md4c-html ssh2 vncclient vncserver z magic md4c
     crypto ssl jsoncpp
     pthread dl m util
     -Wl,-unresolved-symbols=ignore-all
