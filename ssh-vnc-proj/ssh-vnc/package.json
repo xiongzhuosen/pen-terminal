@@ -1,0 +1,26 @@
+{
+  "name": "ssh-vnc-miniapp",
+  "appid": "8001768824593523",
+  "version": "1.0.0",
+  "description": "SSH-VNC 远程管理小程序",
+  "icon": "a.png",
+  "quickjs": {
+    "version": "20200705",
+    "bigNum": false
+  },
+ "single-js-bundle": false,
+  "scripts": {
+    "build": "aiot-cli -p",
+    "package": "aiot-cli -c -q -p"
+  },
+  "keywords": [
+    "iot",
+    "miniapp",
+    "ssh",
+    "vnc"
+  ],
+ "devDependencies": {},
+  "dependencies": {
+    "falcon-ui": "^2.0.2"
+  }
+}
