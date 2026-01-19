@@ -1,4 +1,4 @@
-mkdir -p ~/extract
-for pkg in ~/deb/*.deb ~/deb/*.udeb; do
-  dpkg-deb --fsys-tarfile "$pkg" | tar -xpf - -C ~/extract --overwrite
+#!/bin/bash
+for pkg in *.deb *.udeb; do
+    dpkg-deb -x "$pkg" .     # 点号表示“当前目录”，覆盖同名文件
 done
