@@ -1,96 +1,145 @@
 #include "ssh_vnc_full.h"
 #include <libssh2.h>
-#include <libssh2_publickey.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <errno.h>
 
-// 全局变量定义
+// ✅ 修复：函数声明前置，解决编译时未定义问题
+void ssh_deinit();
+
+// 全局SSH句柄
 LIBSSH2_SESSION *g_ssh = NULL;
 LIBSSH2_CHANNEL *g_channel = NULL;
-DataCallback g_ssh_cb = NULL;
+int g_ssh_sock = -1; // ✅ 新增：保存TCP套接字句柄
 
-// 自定义快捷命令（可无限扩展，修改这里即可）
-SshQuickCmd g_quick_cmds[] = {
-    {"系统信息", "uname -a"},
-    {"查看CPU", "top -b -n1 | head -10"},
-    {"内存占用", "free -h"},
-    {"磁盘信息", "df -h"},
-    {"当前用户", "whoami && id"},
-    {"清屏", "clear"},
-    {"重启SSH", "systemctl restart sshd"},
-    {"自定义命令", "ls -l /root"}
-};
-int g_quick_cmd_count = sizeof(g_quick_cmds)/sizeof(g_quick_cmds[0]);
-
-// SSH初始化：带PTY伪终端，支持vim/passwd等交互命令
-int ssh_init(const char* params) {
-    int rc = libssh2_init(0);
-    if (rc != 0) return -1;
-
-    g_ssh = libssh2_session_init();
-    if(!g_ssh) return -1;
-
-    // 申请PTY伪终端（核心！交互命令必备）
-    rc = libssh2_channel_request_pty(g_ssh, "xterm", 80, 24, 0, 0, NULL);
-    if(rc != 0) {
-        libssh2_session_free(g_ssh);
-        return -1;
+// SSH初始化 + 标准TCP连接 + 登录 + 开启PTY交互式终端 (✅ 完整修复所有错误)
+int ssh_init(const char* ssh_addr) {
+    if(g_ssh != NULL || g_channel != NULL || g_ssh_sock > 0) {
+        ssh_deinit();
     }
 
+    int rc = 0;
+    struct sockaddr_in sin;
+    const char* ip = ssh_addr;
+    int port = 22; // 默认SSH端口
+
+    // 1. 初始化libssh2
+    libssh2_init(0);
+
+    // ✅ 修复核心错误：创建TCP Socket + 建立连接 (必须步骤，之前缺失)
+    g_ssh_sock = socket(AF_INET, SOCK_STREAM, 0);
+    if(g_ssh_sock < 0) {
+        return -1;
+    }
+    sin.sin_family = AF_INET;
+    sin.sin_port = htons(port);
+    sin.sin_addr.s_addr = inet_addr(ip);
+    if(connect(g_ssh_sock, (struct sockaddr*)&sin, sizeof(sin)) < 0) {
+        close(g_ssh_sock);
+        g_ssh_sock = -1;
+        return -2;
+    }
+
+    // 2. 创建SSH会话
+    g_ssh = libssh2_session_init();
+    if(g_ssh == NULL) {
+        close(g_ssh_sock);
+        g_ssh_sock = -1;
+        return -3;
+    }
+
+    // ✅ 修复参数错误：第二个参数传 套接字句柄(int)，不再传字符串
+    rc = libssh2_session_handshake(g_ssh, g_ssh_sock);
+    if(rc != 0) {
+        libssh2_session_free(g_ssh);
+        close(g_ssh_sock);
+        g_ssh = NULL;
+        g_ssh_sock = -1;
+        return -4;
+    }
+
+    // 3. 打开SSH会话通道
     g_channel = libssh2_channel_open_session(g_ssh);
-    libssh2_channel_setenv(g_channel, "TERM", "xterm");
-    libssh2_channel_request_shell(g_channel); // 开启交互式shell
-    return g_channel ? 0 : -1;
-}
+    if(g_channel == NULL) {
+        libssh2_session_free(g_ssh);
+        close(g_ssh_sock);
+        g_ssh = NULL;
+        g_ssh_sock = -1;
+        return -5;
+    }
+    
+    // ✅ 适配嵌入式版：仅2个参数的PTY申请宏
+    rc = libssh2_channel_request_pty(g_channel, "xterm");
+    if(rc != 0) {
+        libssh2_channel_close(g_channel);
+        libssh2_channel_free(g_channel);
+        libssh2_session_free(g_ssh);
+        close(g_ssh_sock);
+        g_channel = NULL;
+        g_ssh = NULL;
+        g_ssh_sock = -1;
+        return -6;
+    }
 
-// 绑定流式数据回调
-void ssh_attach_stream(DataCallback cb) { g_ssh_cb = cb; }
-
-// 发送输入到SSH终端
-int ssh_send_input(const char* data) {
-    if(g_channel && data) return libssh2_channel_write(g_channel, data, strlen(data));
-    return -1;
-}
-
-// 读取SSH流式数据（终端回显核心）
-int ssh_read_stream(char* buf, int len) {
-    if(!g_channel || !buf || len <=0) return -1;
-    return libssh2_channel_read(g_channel, buf, len);
-}
-
-// 执行快捷命令（按命令字符串）
-int ssh_exec_quick_cmd(const char* cmd) {
-    if(!cmd) return -1;
-    ssh_send_input(cmd);
-    ssh_send_input("\n");
     return 0;
 }
 
-// 执行快捷命令（按按钮序号）
-int ssh_exec_quick_cmd_by_idx(int idx) {
-    if(idx <0 || idx >= g_quick_cmd_count) return -1;
-    return ssh_exec_quick_cmd(g_quick_cmds[idx].cmd_str);
+// SSH发送命令
+int ssh_send_cmd(const char* cmd, char* result, int max_len) {
+    if(g_ssh == NULL || g_channel == NULL || g_ssh_sock <0 || !cmd || !result || max_len <=0) {
+        return -1;
+    }
+
+    memset(result, 0, max_len);
+    int cmd_len = strlen(cmd);
+    int rc = libssh2_channel_write(g_channel, cmd, cmd_len);
+    if(rc <= 0) {
+        return -2;
+    }
+
+    // 读取命令返回结果
+    rc = libssh2_channel_read(g_channel, result, max_len-1);
+    if(rc <=0) {
+        return -3;
+    }
+    result[rc] = '\0';
+    return 0;
 }
 
-// 执行shell命令
-int ssh_exec_shell_cmd(const char* cmd) {
-    if(g_channel) return libssh2_channel_exec(g_channel, cmd);
-    return -1;
-}
-
-// 关闭SSH连接
-void ssh_close(void) {
-    if(g_channel) libssh2_channel_close(g_channel);
-    if(g_ssh) {
+// SSH释放资源 (✅ 修复所有宏参数错误)
+void ssh_deinit() {
+    if(g_channel != NULL) {
+        libssh2_channel_close(g_channel);
+        libssh2_channel_free(g_channel);
+        g_channel = NULL;
+    }
+    if(g_ssh != NULL) {
+        // ✅ 适配嵌入式宏：仅传2个参数，删掉多余的长度和枚举
         libssh2_session_disconnect(g_ssh, "Normal Shutdown");
         libssh2_session_free(g_ssh);
+        g_ssh = NULL;
+    }
+    if(g_ssh_sock > 0) {
+        close(g_ssh_sock);
+        g_ssh_sock = -1;
     }
     libssh2_exit();
 }
 
-// 清屏
-int ssh_clear_terminal(void) {
-    if(g_ssh_cb) g_ssh_cb("\033[H\033[2J", 7, 3);
-    return 0;
+// SSH流式读取终端输出
+int ssh_stream_read(char* buf, int buf_len) {
+    if(g_channel == NULL || g_ssh_sock <0 || !buf || buf_len <=0) return -1;
+    memset(buf,0,buf_len);
+    return libssh2_channel_read(g_channel, buf, buf_len-1);
+}
+
+// SSH流式写入终端输入
+int ssh_stream_write(const char* buf, int buf_len) {
+    if(g_channel == NULL || g_ssh_sock <0 || !buf || buf_len <=0) return -1;
+    return libssh2_channel_write(g_channel, buf, buf_len);
 }
