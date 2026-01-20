@@ -1,0 +1,15 @@
+@import "./var.less";
+@import "./mixin.less";
+
+.page-root { #page-container(); }
+.wrapper { display: flex; flex-direction: column; padding: @padding-md; }
+.text-sm { font-size: @font-size-sm; }
+.text-md { font-size: @font-size-md; }
+.text-lg { font-size: @font-size-lg; }
+.btn-primary { #btn-style(@color-primary); }
+.btn-success { #btn-style(@color-success); }
+.btn-warning { #btn-style(@color-warning); }
+.btn-danger { #btn-style(@color-danger); }
+.input { #input-style(); }
+.terminal { #terminal-style(); }
+.border { border: 1px solid @color-border; border-radius: @border-radius; }

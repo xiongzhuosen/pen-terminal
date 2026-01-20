@@ -1,0 +1,40 @@
+@import "./var.less";
+
+/* 页面容器 - 适配260×640 */
+#page-container() {
+  width: @screen-w;
+  height: @screen-h;
+  background-color: @color-bg;
+  overflow: hidden;
+}
+
+/* 按钮 - 小屏适配 */
+#btn-style(@color) {
+  height: @btn-height;
+  line-height: @btn-height;
+  padding: 0 @padding-md;
+  background-color: @color;
+  color: #fff;
+  border-radius: @border-radius;
+  font-size: @font-size-md;
+  text-align: center;
+}
+
+/* 输入框 - 小屏适配 */
+#input-style() {
+  height: @input-height;
+  line-height: @input-height;
+  padding: 0 @padding-sm;
+  border: 1px solid @color-border;
+  border-radius: @border-radius;
+  font-size: @font-size-md;
+  width: 100%;
+}
+
+/* 终端样式 */
+#terminal-style() {
+  background-color: @color-terminal-bg;
+  color: @color-terminal-text;
+  font-family: monospace;
+  font-size: @font-size-sm;
+}

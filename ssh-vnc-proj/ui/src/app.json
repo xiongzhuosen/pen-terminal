@@ -1,0 +1,9 @@
+{
+  "pages": {
+    "ssh": "pages/ssh/ssh.vue",
+    "vnc": "pages/vnc/vnc.vue",
+    "file": "pages/file/file.vue",
+    "about": "pages/about/about.vue"
+  },
+  "options": { "style": { "lessPaths": ["styles"] } }
+}

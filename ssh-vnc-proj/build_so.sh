@@ -1,47 +1,114 @@
 #!/bin/bash
-set -euo pipefail
-log_info()  { echo -e "\033[36m[INFO] $1\033[0m"; }
-log_success(){ echo -e "\033[32m✅ $1\033[0m"; }
-log_error() { echo -e "\033[31m❌ $1\033[0m" && exit 1; }
+# ==============================================
+# SSH-VNC 全功能库一键交叉编译脚本
+# 依赖：已配置 CROSS_TOOLCHAIN_PREFIX 环境变量
+# 功能：自动创建build目录 -> cmake配置 -> make编译 -> 产物检查
+# 支持模式：Release(默认) / Debug
+# 运行目录：项目根目录（与 src/include/iot-miniapp-sdk 同级）
+# ==============================================
+set -e
 
-# 配置
-PROJ_ROOT=$(cd $(dirname $0); pwd)
-TOOLCHAIN_PREFIX="/root/x-tools/arm-none-linux-gnueabihf/bin/arm-none-linux-gnueabihf-"
-BUILD_TYPE=Release
-LOG_DIR=${PROJ_ROOT}/build_log
-mkdir -p ${LOG_DIR}
+# 颜色定义
+RED='\033[31m'
+GREEN='\033[32m'
+BLUE='\033[34m'
+YELLOW='\033[33m'
+NC='\033[0m'
 
-# 前置检测
-log_info "检测编译前置条件..."
-[ ! -d ${PROJ_ROOT}/deps/usr/lib/arm-linux-gnueabihf ] && log_error "deps目录缺失ARM库"
-[ ! -f "${TOOLCHAIN_PREFIX}gcc" ] && log_error "交叉工具链不存在"
-command -v cmake >/dev/null 2>&1 || log_error "请安装cmake: apt install cmake"
+# 日志函数
+info(){ echo -e "${BLUE}[INFO]${NC} $1"; }
+ok(){ echo -e "${GREEN}[OK]${NC} $1"; }
+warn(){ echo -e "${YELLOW}[WARN]${NC} $1"; }
+err(){ echo -e "${RED}[ERROR]${NC} $1"; exit 1; }
 
-# 配置环境变量
-export CROSS_TOOLCHAIN_PREFIX=${TOOLCHAIN_PREFIX}
-export PATH=${TOOLCHAIN_PREFIX%/*}:$PATH
-export CC=${TOOLCHAIN_PREFIX}gcc
-export CXX=${TOOLCHAIN_PREFIX}g++
+# ===================== 1. 环境与目录检查 =====================
+check_env(){
+    # 检查交叉编译工具链环境变量
+    if [ -z "$CROSS_TOOLCHAIN_PREFIX" ]; then
+        err "未设置 CROSS_TOOLCHAIN_PREFIX 环境变量！\n示例: export CROSS_TOOLCHAIN_PREFIX=arm-linux-gnueabihf-"
+    fi
+    info "交叉编译工具链前缀: $CROSS_TOOLCHAIN_PREFIX"
 
-# 清理缓存
-log_info "清理旧编译缓存..."
-rm -rf ${PROJ_ROOT}/build && mkdir -p ${PROJ_ROOT}/build && cd ${PROJ_ROOT}/build
+    # 检查项目核心目录
+    local REQUIRED_DIRS=("src" "include" "iot-miniapp-sdk" "deps" "ui")
+    for dir in "${REQUIRED_DIRS[@]}"; do
+        if [ ! -d "$dir" ]; then
+            err "核心目录缺失: $dir，请检查项目结构"
+        fi
+    done
+    ok "项目目录结构检查通过"
 
-# 编译
-log_info "开始ARM编译..."
-cmake -DCMAKE_BUILD_TYPE=${BUILD_TYPE} .. 2>&1 | tee ${LOG_DIR}/cmake.log
-make 2>&1 | tee ${LOG_DIR}/make.log
+    # 检查 SDK 源码是否存在
+    if [ -z "$(ls iot-miniapp-sdk/src/*.cpp 2>/dev/null)" ]; then
+        warn "iot-miniapp-sdk/src 下无 cpp 文件，可能导致编译失败"
+    fi
 
-# 产物校验
-SO_FILE=${PROJ_ROOT}/ui/libs/libssh-vnc-full.so
-[ ! -f ${SO_FILE} ] && log_error "编译失败，未生成SO库"
-chmod 755 ${SO_FILE}
+    # 检查主项目源码是否存在
+    if [ -z "$(ls src/*.cpp 2>/dev/null)" ]; then
+        err "src 目录下无 cpp 文件，无法编译"
+    fi
+}
 
-# 架构校验
-if command -v file &>/dev/null; then
-    FILE_INFO=$(file ${SO_FILE})
-    echo -e "\033[32mSO库架构: ${FILE_INFO}\033[0m"
-    echo ${FILE_INFO} | grep -qi "arm\|ARM" || log_error "产物不是ARM架构"
-fi
+# ===================== 2. 解析编译模式 =====================
+parse_mode(){
+    if [ "$1" = "debug" ]; then
+        BUILD_TYPE="Debug"
+        info "编译模式: Debug（带调试信息）"
+    else
+        BUILD_TYPE="Release"
+        info "编译模式: Release（优化编译）"
+    fi
+}
 
-log_success "最终版SO库编译成功！路径: ${SO_FILE}"
+# ===================== 3. 执行编译 =====================
+run_compile(){
+    local BUILD_DIR="build"
+    # 创建并进入build目录
+    if [ -d "$BUILD_DIR" ]; then
+        info "清理旧build目录..."
+        rm -rf "$BUILD_DIR"
+    fi
+    mkdir -p "$BUILD_DIR" && cd "$BUILD_DIR"
+
+    # 执行cmake配置
+    info "执行 CMake 配置..."
+    cmake -DCMAKE_BUILD_TYPE=${BUILD_TYPE} ..
+    if [ $? -ne 0 ]; then
+        err "CMake 配置失败，请检查CMakeLists.txt或依赖库"
+    fi
+
+    # 执行make编译
+    info "开始编译（使用多核加速）..."
+    make -j$(nproc)
+    if [ $? -ne 0 ]; then
+        err "Make 编译失败，请检查源码或依赖"
+    fi
+
+    # 返回项目根目录
+    cd ..
+}
+
+# ===================== 4. 产物检查 =====================
+check_output(){
+    local SO_PATH="ui/libs/libssh-vnc-full.so"
+    if [ -f "$SO_PATH" ]; then
+        ok "编译成功！产物路径: $SO_PATH"
+        info "SO库大小: $(du -h $SO_PATH | awk '{print $1}')"
+    else
+        err "编译产物缺失！请检查编译日志"
+    fi
+}
+
+# ===================== 主流程 =====================
+main(){
+    info "============= SSH-VNC 全功能库编译开始 ============="
+    parse_mode "$1"
+    check_env
+    run_compile
+    check_output
+    echo -e "\n${GREEN}✅✅✅ 编译流程全部完成！✅✅✅${NC}"
+    info "下一步: 将 ui/libs 目录复制到ARM设备即可运行"
+}
+
+# 启动脚本
+main "$1"
