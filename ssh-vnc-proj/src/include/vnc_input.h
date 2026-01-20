@@ -7,7 +7,6 @@
 extern "C" {
 #endif
 
-// ✅ 实现函数加 _impl 后缀
 int vnc_connect_impl(const char* ip, const char* port, const char* pass);
 void vnc_disconnect_impl();
 void vnc_set_scale_impl(float scale);
