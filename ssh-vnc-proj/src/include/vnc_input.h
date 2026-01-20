@@ -2,30 +2,18 @@
 #define VNC_INPUT_H
 
 #include <rfb/rfbclient.h>
-// ✅ 移除 C++ 头文件 #include <string>
 
-// ✅ 全局 extern "C" 包裹
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-// 连接 VNC 服务器
-int vnc_connect(const char* ip, const char* port, const char* pass);
-
-// 断开 VNC 连接
-void vnc_disconnect();
-
-// 设置 VNC 画面缩放比例
-void vnc_set_scale(float scale);
-
-// 读取 VNC 帧数据（base64 编码）
-int vnc_read_frame(char* buf, int buf_len);
-
-// 发送键鼠事件（JSON 格式字符串）
-int vnc_send_input(const char* evt_json);
-
-// 发送键盘按键事件
-int vnc_send_key(const char* key);
+// ✅ 实现函数加 _impl 后缀
+int vnc_connect_impl(const char* ip, const char* port, const char* pass);
+void vnc_disconnect_impl();
+void vnc_set_scale_impl(float scale);
+int vnc_read_frame_impl(char* buf, int buf_len);
+int vnc_send_input_impl(const char* evt_json);
+int vnc_send_key_impl(const char* key);
 
 #ifdef __cplusplus
 }

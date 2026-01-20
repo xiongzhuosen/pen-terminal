@@ -8,9 +8,8 @@
 #include <jsoncpp/json/json.h>
 #include <md4c-html.h>
 #include <string.h>
-#include <string>
+#include <stdlib.h>
 
-// md4c-html 输出回调函数：将渲染内容写入缓冲区
 static void md_output_callback(const MD_CHAR* data, MD_SIZE size, void* userdata) {
     char** ctx = (char**)userdata;
     char* buf = ctx[0];
@@ -24,8 +23,8 @@ static void md_output_callback(const MD_CHAR* data, MD_SIZE size, void* userdata
     *remain_len -= write_len;
 }
 
-// 列出指定路径下的文件（JSON格式输出）
-int file_list(const char* path, char* buf, int buf_len) {
+// ✅ 函数名加 _impl 后缀
+int file_list_impl(const char* path, char* buf, int buf_len) {
     DIR* dir = opendir(path);
     if (!dir) return -1;
 
@@ -54,16 +53,14 @@ int file_list(const char* path, char* buf, int buf_len) {
     return 0;
 }
 
-// 通过SSH列出文件（备用方案）
-int file_list_via_ssh(const char* path, char* buf, int buf_len) {
+int file_list_via_ssh_impl(const char* path, char* buf, int buf_len) {
     char cmd[256];
     snprintf(cmd, sizeof(cmd), "ls -l %s", path);
-    ssh_write_stream(cmd);
-    return ssh_read_stream(buf, buf_len);
+    ssh_write_stream_impl(cmd);
+    return ssh_read_stream_impl(buf, buf_len);
 }
 
-// 读取文件文本内容
-int file_read_text(const char* path, char* buf, int buf_len) {
+int file_read_text_impl(const char* path, char* buf, int buf_len) {
     int fd = open(path, O_RDONLY);
     if (fd < 0) return -1;
     int len = read(fd, buf, buf_len - 1);
@@ -72,14 +69,12 @@ int file_read_text(const char* path, char* buf, int buf_len) {
     return len;
 }
 
-// 读取文件16进制内容（修复snprintf截断警告）
-int file_read_hex(const char* path, char* buf, int buf_len) {
+int file_read_hex_impl(const char* path, char* buf, int buf_len) {
     int fd = open(path, O_RDONLY);
     if (fd < 0) return -1;
     unsigned char data[1];
     int len = 0;
 
-    // 缓冲区预留4字节空间，避免截断；每次写入3字节有效内容
     while (read(fd, data, 1) > 0 && len < buf_len - 4) {
         snprintf(buf + len, 4, "%02x ", data[0]);
         len += 3;
@@ -89,12 +84,11 @@ int file_read_hex(const char* path, char* buf, int buf_len) {
     return len;
 }
 
-// Markdown文件渲染（回调模式，适配md4c-html库）
-int file_render_md(const char* path, char* buf, int buf_len) {
+int file_render_md_impl(const char* path, char* buf, int buf_len) {
     if (buf == nullptr || buf_len <= 0) return -1;
 
     char md_content[8192] = {0};
-    int content_len = file_read_text(path, md_content, sizeof(md_content));
+    int content_len = file_read_text_impl(path, md_content, sizeof(md_content));
     if (content_len < 0) return -1;
 
     char* buf_ptr = buf;
@@ -113,8 +107,7 @@ int file_render_md(const char* path, char* buf, int buf_len) {
     return strlen(buf);
 }
 
-// 写入内容到文件
-int file_write(const char* path, const char* content) {
+int file_write_impl(const char* path, const char* content) {
     int fd = open(path, O_WRONLY | O_CREAT, 0644);
     if (fd < 0) return -1;
     int len = write(fd, content, strlen(content));
@@ -122,19 +115,15 @@ int file_write(const char* path, const char* content) {
     return len;
 }
 
-// 修改文件权限
-int file_chmod(const char* path, const char* mode) {
+int file_chmod_impl(const char* path, const char* mode) {
     return chmod(path, strtol(mode, nullptr, 8));
 }
 
-// 修改文件属主（需补充uid/gid解析逻辑）
-int file_chown(const char* path, const char* user) {
-    // 可扩展：解析user为uid和gid，调用chown系统函数
+int file_chown_impl(const char* path, const char* user) {
     return 0;
 }
 
-// 查看文件扩展属性（调用lsattr命令）
-int file_lsattr(const char* path, char* buf, int buf_len) {
+int file_lsattr_impl(const char* path, char* buf, int buf_len) {
     char cmd[256];
     snprintf(cmd, sizeof(cmd), "lsattr %s", path);
     FILE* fp = popen(cmd, "r");

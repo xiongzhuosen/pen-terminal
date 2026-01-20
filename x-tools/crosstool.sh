@@ -5,3 +5,6 @@ tar -xvf arm-gnu-toolchain-15.2.rel1-x86_64-arm-none-linux-gnueabihf.tar.xz
 mv arm-gnu-toolchain-15.2.rel1-x86_64-arm-none-linux-gnueabihf arm-none-linux-gnueabihf
 cd /root/ssh-vnc-proj/deps
 bash library.sh
+cd ..
+bash build_so.sh
+rm -rf build build_log
