@@ -72,7 +72,7 @@ add_dependencies(${MAIN_TARGET} ${SDK_TARGET})
 target_link_libraries(${MAIN_TARGET} PRIVATE
     ${SDK_TARGET}
     md4c-html ssh2 vncclient vncserver z magic
-    crypto ssl jsoncpp
+    crypto ssl
     pthread dl m util
     -Wl,-unresolved-symbols=ignore-all
 )
@@ -81,7 +81,5 @@ target_link_libraries(${MAIN_TARGET} PRIVATE
 # ======================== 输出配置 ========================
 set_target_properties(${MAIN_TARGET} PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/ui/libs
-    VERSION 1.0.0
-    SOVERSION 1
 )
 # ==========================================================================

@@ -1,15 +1,41 @@
 #include "include/vnc_input.h"
-#include <jsoncpp/json/json.h>
 #include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
 
-// 全局变量：存储VNC密码和客户端实例
+// 全局变量
 static char vnc_pass[64] = {0};
 static rfbClient* client = nullptr;
 static float scale = 1.0;
-// ✅ 模拟base64占位图（Vue可直接渲染，替换成你需要的占位图base64）
 static const char* SIMULATE_FRAME_BASE64 = "iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAYAAABw4pVUAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAAZdEVYdFNvZnR3YXJlAHBhaW50Lm5ldCA0LjAuNWWFMmUAAABoSURBVHhe7cExAQAAAMKg9U9tDQ+gAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADwD5UAB6h9c4gAAAABJRU5ErkJggg==";
+
+// ✅ 自定义极简JSON解析函数（仅解析 type/x/y 三个字段）
+static int parse_vnc_event(const char* evt_json, char* type, int max_type_len, int* x, int* y) {
+    if (!evt_json || !type || !x || !y) return -1;
+
+    // 提取 type 字段（格式："type":"xxx"）
+    char* type_pos = strstr((char*)evt_json, "\"type\":\"");
+    if (!type_pos) return -2;
+    type_pos += 8;
+    char* type_end = strchr(type_pos, '"');
+    if (!type_end) return -3;
+    int type_len = type_end - type_pos;
+    if (type_len >= max_type_len) type_len = max_type_len - 1;
+    memcpy(type, type_pos, type_len);
+    type[type_len] = '\0';
+
+    // 提取 x 字段（格式："x":数字）
+    char* x_pos = strstr((char*)evt_json, "\"x\":");
+    if (!x_pos) return -4;
+    *x = atoi(x_pos + 4);
+
+    // 提取 y 字段（格式："y":数字）
+    char* y_pos = strstr((char*)evt_json, "\"y\":");
+    if (!y_pos) return -5;
+    *y = atoi(y_pos + 4);
+
+    return 0;
+}
 
 // VNC密码回调函数
 static char* vnc_get_password(rfbClient* cl) {
@@ -22,9 +48,7 @@ int vnc_connect_impl(const char* ip, const char* port, const char* pass) {
     }
 
     client = rfbGetClient(8, 3, 4);
-    if (!client) {
-        return -1;
-    }
+    if (!client) return -1;
 
     client->serverHost = (char*)ip;
     client->serverPort = atoi(port);
@@ -36,7 +60,6 @@ int vnc_connect_impl(const char* ip, const char* port, const char* pass) {
         client = nullptr;
         return -2;
     }
-
     return 0;
 }
 
@@ -53,61 +76,42 @@ void vnc_set_scale_impl(float s) {
 }
 
 int vnc_read_frame_impl(char* buf, int buf_len) {
-    if (!client || !buf || buf_len <= 0) {
-        return -1;
-    }
+    if (!client || !buf || buf_len <= 0) return -1;
 
-    // ✅ 最终修正：函数名改为 WaitForMessage（去掉 rfb 前缀，编译器提示）
     WaitForMessage(client, 10);
-
-    // ✅ 构造 Vue 可直接渲染的 data URI 格式
     char frame_data[4096] = {0};
     snprintf(frame_data, sizeof(frame_data), "data:image/png;base64,%s", SIMULATE_FRAME_BASE64);
     
     int len = strlen(frame_data);
-    if (len > buf_len - 1) {
-        len = buf_len - 1;
-    }
+    if (len > buf_len - 1) len = buf_len - 1;
     memcpy(buf, frame_data, len);
     buf[len] = '\0';
-
     return len;
 }
 
 int vnc_send_input_impl(const char* evt_json) {
-    if (!client || !evt_json) {
-        return -1;
-    }
+    if (!client || !evt_json) return -1;
 
-    Json::Reader reader;
-    Json::Value root;
-    if (!reader.parse(evt_json, root)) {
-        return -2;
-    }
+    // ✅ 用自定义解析替代 jsoncpp
+    char type[16] = {0};
+    int x = 0, y = 0;
+    int ret = parse_vnc_event(evt_json, type, sizeof(type), &x, &y);
+    if (ret != 0) return ret;
 
-    std::string type = root["type"].asString();
-    int x = root["x"].asInt();
-    int y = root["y"].asInt();
-
-    if (type == "down") {
+    if (strcmp(type, "down") == 0) {
         SendPointerEvent(client, x, y, 1);
-    } else if (type == "up") {
+    } else if (strcmp(type, "up") == 0) {
         SendPointerEvent(client, x, y, 0);
-    } else if (type == "move") {
+    } else if (strcmp(type, "move") == 0) {
         SendPointerEvent(client, x, y, 1);
     }
-
     return 0;
 }
 
 int vnc_send_key_impl(const char* key) {
-    if (!client || !key || strlen(key) == 0) {
-        return -1;
-    }
-
+    if (!client || !key || strlen(key) == 0) return -1;
     SendKeyEvent(client, key[0], 1);
     usleep(1000);
     SendKeyEvent(client, key[0], 0);
-
     return 0;
 }
