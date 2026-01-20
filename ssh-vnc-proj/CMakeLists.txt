@@ -14,9 +14,9 @@ endif()
 # 核心变量定义（严格匹配你的命名）
 set(LIB_NAME ssh-vnc-full)
 set(SDK_LIB_NAME iot-miniapp-sdk-static)
-set(CMAKE_CXX_STANDARD 17)          # 修正：升级到你指定的 C++17 标准
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_POSITION_INDEPENDENT_CODE ON)  # 全局fPIC，兼容静态库链接
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 # 强制使用ARM交叉编译工具链（保留你的校验逻辑）
 if(NOT DEFINED ENV{CROSS_TOOLCHAIN_PREFIX})
@@ -31,8 +31,8 @@ set(CMAKE_CXX_COMPILER_FORCED TRUE)
 # 头文件路径：补齐 SDK 头文件 + 匹配 deps 目录结构
 set(ARM_DEPS_ROOT ${CMAKE_SOURCE_DIR}/deps)
 include_directories(
-    ${CMAKE_SOURCE_DIR}/include           # 主项目头文件
-    ${CMAKE_SOURCE_DIR}/iot-miniapp-sdk/include  # SDK头文件（之前缺失）
+    ${CMAKE_SOURCE_DIR}/include
+    ${CMAKE_SOURCE_DIR}/iot-miniapp-sdk/include
     ${ARM_DEPS_ROOT}/usr/include
     ${ARM_DEPS_ROOT}/usr/include/arm-linux-gnueabihf
 )
@@ -48,10 +48,10 @@ if(NOT SDK_SRC)
     message(WARNING "SDK source files not found in ${CMAKE_SOURCE_DIR}/iot-miniapp-sdk/src")
 endif()
 add_library(${SDK_LIB_NAME} STATIC ${SDK_SRC})
-target_compile_options(${SDK_LIB_NAME} PRIVATE -w)  # 屏蔽SDK编译警告
+target_compile_options(${SDK_LIB_NAME} PRIVATE -w)
 set_target_properties(${SDK_LIB_NAME} PROPERTIES
-    POSITION_INDEPENDENT_CODE ON  # 静态库需要fPIC才能链接到动态库
-    ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib  # SDK库输出路径
+    POSITION_INDEPENDENT_CODE ON
+    ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib
 )
 # ======================================================================================
 
@@ -61,17 +61,17 @@ if(NOT SRC_FILES)
     message(FATAL_ERROR "Main source files not found in ${CMAKE_SOURCE_DIR}/src")
 endif()
 add_library(${LIB_NAME} SHARED ${SRC_FILES})
-add_dependencies(${LIB_NAME} ${SDK_LIB_NAME})  # 确保先编译SDK，再编译主库
+add_dependencies(${LIB_NAME} ${SDK_LIB_NAME})
 
 # 链接库：完全替换为你指定的列表（补全 md4c-html/magic/jsoncpp 等刚需库）
 target_link_libraries(${LIB_NAME} PRIVATE
-    ${SDK_LIB_NAME}            # 链接SDK静态库（之前缺失）
-    md4c-html                  # MD渲染刚需库
-    ssh2 vncclient vncserver   # SSH/VNC核心库
-    z magic                    # 压缩/文件类型识别库
-    crypto ssl jsoncpp         # 加密/JSON解析库
-    pthread dl m util          # 系统库
-    -Wl,-unresolved-symbols=ignore-all  # 弱依赖：缺失库仅提醒不报错
+    ${SDK_LIB_NAME}
+    md4c-html
+    ssh2 vncclient vncserver
+    z magic
+    crypto ssl jsoncpp
+    pthread dl m util
+    -Wl,-unresolved-symbols=ignore-all
 )
 
 # 输出路径：修正为你指定的绝对路径，确保SO库放入前端ui/libs
