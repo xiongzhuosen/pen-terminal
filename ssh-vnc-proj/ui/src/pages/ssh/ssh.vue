@@ -1,83 +1,90 @@
 <template>
   <div class="page-root">
-    <div class="wrapper">
-      <!-- 连接配置 -->
-      <div class="conn-config">
-        <input class="input" v-model="conn.ip" placeholder="服务器IP" />
-        <input class="input" v-model="conn.port" placeholder="端口(默认22)" />
-        <input class="input" v-model="conn.user" placeholder="用户名" />
-        <input class="input" v-model="conn.pass" placeholder="密码" type="password" />
-        <text class="btn-primary" @click="selectKey">选择密钥文件</text>
-        <text class="btn-success" @click="connectSSH">{{connected?'断开':'连接'}}</text>
-      </div>
-      <!-- 快捷命令块 -->
-      <div class="quick-cmds">
-        <text class="btn-warning" @click="runQuickCmd('ls -la')">ls -la</text>
-        <text class="btn-warning" @click="runQuickCmd('top')">top</text>
-        <text class="btn-warning" @click="runQuickCmd('vim test.txt')">vim test.txt</text>
-        <text class="btn-warning" @click="addQuickCmd">添加命令</text>
-      </div>
-      <!-- 流式终端 -->
-      <Terminal ref="terminal" @cmdInput="runCmd" />
-      <!-- 内置键盘 -->
-      <VirtualKeyboard @keyPress="handleKeyPress" />
+    <div class="page-header">
+      <text class="header-title">SSH 终端</text>
+      <text class="header-btn" @click="showConfig">配置</text>
     </div>
+    <QuickCmd @exec-cmd="execQuickCmd" />
+    <SshTerminal ref="terminal" @send-cmd="sendCmd" @send-esc="sendEsc" />
+    <VirtualKeyboard @key-press="handleKey" @toggle="showKeyboard = $event" />
   </div>
 </template>
+
 <script>
-import Terminal from '../../components/Terminal.vue';
-import VirtualKeyboard from '../../components/VirtualKeyboard.vue';
-const so = window.require('./libs/libssh-vnc-full.so');
+import SshTerminal from '../../components/SshTerminal.vue'
+import QuickCmd from '../../components/QuickCmd.vue'
+import VirtualKeyboard from '../../components/VirtualKeyboard.vue'
+
 export default {
-  name: "ssh",
-  components: { Terminal, VirtualKeyboard },
+  name: 'SshPage',
+  components: { SshTerminal, QuickCmd, VirtualKeyboard },
   data() {
     return {
-      connected: false,
-      conn: { ip: "192.168.1.100", port: "22", user: "root", pass: "", keyPath: "" },
-      quickCmds: ["ls -la", "top", "vim test.txt"]
-    };
+      showKeyboard: true,
+      sshConfig: {
+        ip: '',
+        port: '22',
+        user: 'root',
+        pass: '',
+        keyPath: '',
+        useKey: false
+      },
+      connected: false
+    }
+  },
+  onShow() {
+    const config = $falcon.storage.get('sshConfig')
+    if (config) this.sshConfig = config
   },
   methods: {
-    onShow() { console.log("SSH页面显示"); },
-    // 选择密钥文件
-    selectKey() { this.$emit("openFileManager", { type: "key" }); },
-    // 连接SSH
-    connectSSH() {
-      if (this.connected) { so.ssh_disconnect(); this.connected = false; return; }
-      // 支持密码/密钥登录
-      const res = this.conn.keyPath ? so.ssh_connect_with_key(this.conn.ip, this.conn.port, this.conn.user, this.conn.keyPath) : so.ssh_connect(this.conn.ip, this.conn.port, this.conn.user, this.conn.pass);
-      if (res === 0) {
-        this.connected = true;
-        this.$refs.terminal.appendOutput("✅ SSH连接成功，支持vim/passwd等交互式命令");
-        // 启动终端流监听
-        this.startTerminalStream();
-      } else this.$refs.terminal.appendOutput(`❌ 连接失败，错误码: ${res}`);
+    showConfig() {
+      $falcon.modal.show({
+        title: 'SSH 配置',
+        content: `
+          <input class="input-box" v-model="sshConfig.ip" placeholder="IP" />
+          <input class="input-box" v-model="sshConfig.port" placeholder="端口" />
+          <input class="input-box" v-model="sshConfig.user" placeholder="用户" />
+          <input class="input-box" v-model="sshConfig.pass" placeholder="密码" type="password" />
+          <input class="input-box" v-model="sshConfig.keyPath" placeholder="密钥路径" />
+          <checkbox v-model="sshConfig.useKey">使用密钥</checkbox>
+        `,
+        onConfirm: () => {
+          $falcon.storage.set('sshConfig', this.sshConfig)
+          this.connectSsh()
+        }
+      })
     },
-    // 启动终端流监听
-    startTerminalStream() {
+    connectSsh() {
+      let code = 0
+      if (this.sshConfig.useKey) {
+        code = $api.ssh_connect_key(this.sshConfig.ip, this.sshConfig.port, this.sshConfig.user, this.sshConfig.keyPath)
+      } else {
+        code = $api.ssh_connect(this.sshConfig.ip, this.sshConfig.port, this.sshConfig.user, this.sshConfig.pass)
+      }
+      this.connected = code === 0
+      this.$refs.terminal.appendOutput(code === 0 ? '连接成功\n' : '连接失败\n')
+    },
+    sendCmd(cmd) {
+      if (!this.connected) return
+      $api.ssh_exec(cmd)
       this.$page.setInterval(() => {
-        const buf = new Array(1024).fill(0);
-        const len = so.ssh_read_stream(buf, 1024);
-        if (len > 0) this.$refs.terminal.appendOutput(buf.join(''));
-      }, 50);
+        const output = $api.ssh_read()
+        if (output) this.$refs.terminal.appendOutput(output)
+      }, 50)
     },
-    // 运行命令
-    runCmd(cmd) {
-      if (!this.connected) return;
-      so.ssh_write_stream(cmd + "\n");
+    execQuickCmd(cmd) {
+      this.sendCmd(cmd)
     },
-    // 运行快捷命令
-    runQuickCmd(cmd) { this.$refs.terminal.handleKey(cmd); this.runCmd(cmd); },
-    // 添加快捷命令
-    addQuickCmd() { const cmd = prompt("输入快捷命令"); if (cmd) this.quickCmds.push(cmd); },
-    // 处理键盘输入
-    handleKeyPress(key) { this.$refs.terminal.handleKey(key); }
+    sendEsc() {
+      $api.ssh_send_esc()
+    },
+    handleKey(key) {
+      this.$refs.terminal.inputChar(key)
+    }
   }
-};
+}
 </script>
+
 <style lang="less" scoped>
 @import "../../styles/base.less";
-.conn-config { display: flex; flex-direction: column; gap: @padding-sm; margin-bottom: @padding-md; }
-.quick-cmds { display: flex; flex-wrap: wrap; gap: @padding-sm; margin-bottom: @padding-md; }
 </style>

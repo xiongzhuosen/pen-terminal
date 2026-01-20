@@ -1,57 +1,81 @@
 <template>
   <div class="page-root">
-    <div class="wrapper">
-      <!-- 连接配置 -->
-      <div class="conn-config">
-        <input class="input" v-model="conn.ip" placeholder="服务器IP" />
-        <input class="input" v-model="conn.port" placeholder="端口(默认5900)" />
-        <input class="input" v-model="conn.pass" placeholder="密码" type="password" />
-        <text class="btn-success" @click="connectVNC">{{connected?'断开':'连接'}}</text>
-      </div>
-      <!-- VNC画布 -->
-      <VncCanvas :connected="connected" ref="canvas" @scaleChange="handleScale" @mouseEvent="handleMouseEvent" />
-      <!-- 内置键盘 -->
-      <VirtualKeyboard @keyPress="handleKeyPress" />
+    <div class="page-header">
+      <text class="header-title">VNC 远程</text>
+      <text class="header-btn" @click="showConfig">配置</text>
     </div>
+    <VncCanvas 
+      :frameData="frameData" 
+      @mouse-event="sendMouseEvent" 
+      @scale-change="handleScale"
+    />
+    <VirtualKeyboard @key-press="sendKey" @toggle="showKeyboard = $event" />
   </div>
 </template>
+
 <script>
-import VncCanvas from '../../components/VncCanvas.vue';
-import VirtualKeyboard from '../../components/VirtualKeyboard.vue';
-const so = window.require('./libs/libssh-vnc-full.so');
+import VncCanvas from '../../components/VncCanvas.vue'
+import VirtualKeyboard from '../../components/VirtualKeyboard.vue'
+
 export default {
-  name: "vnc",
+  name: 'VncPage',
   components: { VncCanvas, VirtualKeyboard },
-  data() { return { connected: false, conn: { ip: "192.168.1.100", port: "5900", pass: "" } }; },
+  data() {
+    return {
+      showKeyboard: true,
+      vncConfig: { ip: '', port: '5900', pass: '' },
+      frameData: '',
+      connected: false,
+      frameTimer: null
+    }
+  },
+  onShow() {
+    const config = $falcon.storage.get('vncConfig')
+    if (config) this.vncConfig = config
+  },
   methods: {
-    onShow() { console.log("VNC页面显示"); },
-    // 连接VNC
-    connectVNC() {
-      if (this.connected) { so.vnc_disconnect(); this.connected = false; return; }
-      const res = so.vnc_connect(this.conn.ip, this.conn.port, this.conn.pass);
-      if (res === 0) {
-        this.connected = true;
-        this.startFrameStream();
-      } else alert(`VNC连接失败: ${res}`);
+    showConfig() {
+      $falcon.modal.show({
+        title: 'VNC 配置',
+        content: `
+          <input class="input-box" v-model="vncConfig.ip" placeholder="IP" />
+          <input class="input-box" v-model="vncConfig.port" placeholder="端口" />
+          <input class="input-box" v-model="vncConfig.pass" placeholder="密码" type="password" />
+        `,
+        onConfirm: () => {
+          $falcon.storage.set('vncConfig', this.vncConfig)
+          this.connectVnc()
+        }
+      })
     },
-    // 启动帧流监听
-    startFrameStream() {
-      this.$page.setInterval(() => {
-        const buf = new Array(4096).fill(0);
-        const len = so.vnc_read_frame(buf, 4096);
-        if (len > 0) this.$refs.canvas.updateFrame(buf.join(''));
-      }, 30);
+    connectVnc() {
+      const code = $api.vnc_connect(this.vncConfig.ip, this.vncConfig.port, this.vncConfig.pass)
+      this.connected = code === 0
+      if (this.connected) {
+        this.frameTimer = this.$page.setInterval(() => {
+          this.frameData = $api.vnc_read_frame()
+        }, 30)
+      }
     },
-    // 处理缩放
-    handleScale(scale) { so.vnc_set_scale(scale); },
-    // 处理键鼠事件
-    handleMouseEvent(evt) { so.vnc_send_input(JSON.stringify(evt)); },
-    // 处理键盘输入
-    handleKeyPress(key) { so.vnc_send_key(key); }
+    sendMouseEvent(evt) {
+      if (!this.connected) return
+      $api.vnc_send_mouse(JSON.stringify(evt))
+    },
+    sendKey(key) {
+      if (!this.connected) return
+      $api.vnc_send_key(key)
+    },
+    handleScale(scale) {
+      $api.vnc_set_scale(scale)
+    }
+  },
+  onUnload() {
+    if (this.frameTimer) this.$page.clearInterval(this.frameTimer)
+    $api.vnc_disconnect()
   }
-};
+}
 </script>
+
 <style lang="less" scoped>
 @import "../../styles/base.less";
-.conn-config { display: flex; flex-direction: column; gap: @padding-sm; margin-bottom: @padding-md; }
 </style>

@@ -1,87 +1,94 @@
 <template>
   <div class="page-root">
-    <div class="wrapper">
-      <!-- 路径栏 -->
-      <div class="path-bar">
-        <input class="input" v-model="curPath" @keyup.enter="changePath" />
-        <text class="btn-primary" @click="changePath">跳转</text>
+    <FileManager 
+      :initPath="currentPath" 
+      :sshConfig="sshConfig"
+      @open-file="openFile"
+      @file-opt="handleFileOpt"
+      @go-to-ssh="goToSsh"
+      @show-info="showInfo"
+    />
+    <div class="viewer-modal" v-if="showViewer">
+      <div class="viewer-header">
+        <text class="viewer-title">{{ currentFile.name }}</text>
+        <text class="close-btn" @click="closeViewer">关闭</text>
       </div>
-      <!-- 文件列表 -->
-      <div class="file-list">
-        <div class="file-item" v-for="(f, idx) in fileList" :key="idx" @click="selectFile(f)">
-          <text>{{f.name}}</text>
-          <text class="text-sm">{{f.size}} B</text>
-        </div>
-      </div>
-      <!-- 操作按钮 -->
-      <div class="file-ops">
-        <text class="btn-primary" @click="viewFile">查看</text>
-        <text class="btn-warning" @click="editFile">编辑</text>
-        <text class="btn-danger" @click="chmodFile">修改权限</text>
-        <text class="btn-danger" @click="chownFile">修改属主</text>
-        <text class="btn-warning" @click="lsattrFile">查看属性</text>
-      </div>
-      <!-- 文件查看器 -->
-      <FileViewer v-if="showViewer" :filePath="selectedFile" />
+      <scroller class="scroller-box">
+        <text v-if="viewType === 'text'" v-text="fileContent"></text>
+        <text v-else-if="viewType === 'hex'" v-text="hexContent"></text>
+        <div v-else-if="viewType === 'md'" v-html="mdContent"></div>
+      </scroller>
+      <input v-if="viewType === 'text'" v-model="fileContent" class="input-box" style="height: 100px;" />
+      <text class="save-btn" v-if="viewType === 'text'" @click="saveFile">保存</text>
     </div>
   </div>
 </template>
+
 <script>
-import FileViewer from '../../components/FileViewer.vue';
-const so = window.require('./libs/libssh-vnc-full.so');
+import FileManager from '../../components/FileManager.vue'
+import * as marked from 'marked'
+
 export default {
-  name: "file",
-  components: { FileViewer },
-  data() { return { curPath: "/", fileList: [], selectedFile: "", showViewer: false }; },
-  mounted() { this.loadFileList(); },
+  name: 'FilePage',
+  components: { FileManager },
+  data() {
+    return {
+      currentPath: '/',
+      sshConfig: $falcon.storage.get('sshConfig') || {},
+      showViewer: false,
+      currentFile: null,
+      fileContent: '',
+      hexContent: '',
+      mdContent: '',
+      viewType: ''
+    }
+  },
   methods: {
-    onShow() { console.log("文件管理页面显示"); this.loadFileList(); },
-    // 加载文件列表
-    loadFileList() {
-      const buf = new Array(8192).fill(0);
-      // 关联SSH连接：优先so调用，失败则用SSH
-      const res = so.file_list(this.curPath, buf, 8192);
-      if (res !== 0) { so.file_list_via_ssh(this.curPath, buf, 8192); }
-      this.fileList = JSON.parse(buf.join(''));
+    openFile(file) {
+      this.currentFile = file
+      this.showViewer = true
+      const ext = file.name.split('.').pop() || ''
+      this.viewType = ext === 'md' ? 'md' : ext === 'hex' ? 'hex' : 'text'
+      const content = $api.file_read(file.path)
+      this.fileContent = content
+      if (this.viewType === 'hex') {
+        this.hexContent = content.split('').map(c => c.charCodeAt(0).toString(16).padStart(2, '0')).join(' ')
+      } else if (this.viewType === 'md') {
+        this.mdContent = marked.parse(content)
+      }
     },
-    // 切换路径
-    changePath() { this.loadFileList(); },
-    // 选择文件
-    selectFile(f) { this.selectedFile = `${this.curPath}/${f.name}`; },
-    // 查看文件
-    viewFile() { if (this.selectedFile) this.showViewer = true; },
-    // 编辑文件
-    editFile() {
-      if (!this.selectedFile) return;
-      const content = prompt("输入文件内容");
-      if (content) so.file_write(this.selectedFile, content);
+    closeViewer() {
+      this.showViewer = false
+      this.currentFile = null
     },
-    // 修改权限
-    chmodFile() {
-      if (!this.selectedFile) return;
-      const mode = prompt("输入权限(如755)");
-      if (mode) so.file_chmod(this.selectedFile, mode);
+    saveFile() {
+      $api.file_write(this.currentFile.path, this.fileContent)
+      this.closeViewer()
+      $falcon.modal.toast('保存成功')
     },
-    // 修改属主
-    chownFile() {
-      if (!this.selectedFile) return;
-      const user = prompt("输入属主(如root:root)");
-      if (user) so.file_chown(this.selectedFile, user);
+    handleFileOpt(opt) {
+      if (opt.type === 'chmod') {
+        $falcon.modal.prompt('输入权限（如777）', (val) => {
+          $api.file_chmod(opt.path, val)
+          $falcon.modal.toast('操作成功')
+        })
+      } else if (opt.type === 'chown') {
+        $falcon.modal.prompt('输入用户:组（如root:root）', (val) => {
+          $api.file_chown(opt.path, val)
+          $falcon.modal.toast('操作成功')
+        })
+      }
     },
-    // 查看属性
-    lsattrFile() {
-      if (!this.selectedFile) return;
-      const buf = new Array(1024).fill(0);
-      so.file_lsattr(this.selectedFile, buf, 1024);
-      alert(buf.join(''));
+    goToSsh(config) {
+      $falcon.navTo('ssh', config)
+    },
+    showInfo(info) {
+      $falcon.modal.alert(info)
     }
   }
-};
+}
 </script>
+
 <style lang="less" scoped>
 @import "../../styles/base.less";
-.path-bar { display: flex; gap: @padding-sm; margin-bottom: @padding-md; }
-.file-list { width: 100%; height: 200px; border: 1px solid @color-border; overflow-y: auto; margin-bottom: @padding-md; }
-.file-item { display: flex; justify-content: space-between; padding: @padding-sm; border-bottom: 1px solid @color-border; }
-.file-ops { display: flex; flex-wrap: wrap; gap: @padding-sm; margin-bottom: @padding-md; }
 </style>

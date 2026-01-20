@@ -1,15 +1,341 @@
-@import "./var.less";
-@import "./mixin.less";
+@import './var.less';
+@import './mixin.less';
 
-.page-root { #page-container(); }
-.wrapper { display: flex; flex-direction: column; padding: @padding-md; }
-.text-sm { font-size: @font-size-sm; }
-.text-md { font-size: @font-size-md; }
-.text-lg { font-size: @font-size-lg; }
-.btn-primary { #btn-style(@color-primary); }
-.btn-success { #btn-style(@color-success); }
-.btn-warning { #btn-style(@color-warning); }
-.btn-danger { #btn-style(@color-danger); }
-.input { #input-style(); }
-.terminal { #terminal-style(); }
-.border { border: 1px solid @color-border; border-radius: @border-radius; }
+// 页面根容器（260×640适配，纯单类名）
+.page-root {
+  width: @screen-width;
+  height: @screen-height;
+  overflow: hidden;
+  background-color: @bg-dark;
+  display: flex;
+  flex-direction: column;
+}
+
+// 页面头部
+.page-header {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  padding: @spacing-sm;
+  border-width: @border-width-base;
+  border-style: @border-style-base;
+  border-color: @border-color-dark;
+  border-bottom-width: @border-width-base;
+  border-bottom-style: @border-style-base;
+  border-bottom-color: @border-color-dark;
+}
+
+.header-title {
+  font-size: @font-size-base;
+  color: @text-color-light;
+}
+
+.header-btn {
+  font-size: @font-size-sm;
+  color: @text-color-success;
+}
+
+// 滚动容器（Weex scroller专用类）
+.scroller-box {
+  width: 100%;
+  flex: 1;
+}
+
+// 输入框（Weex input专用类）
+.input-box {
+  background-color: @bg-light;
+  border-width: @border-width-base;
+  border-style: @border-style-base;
+  border-color: @border-color-light;
+  border-radius: @border-radius-base;
+  padding: @spacing-xs @spacing-sm;
+  font-size: @font-size-sm;
+  color: @text-color-light;
+  width: 100%;
+}
+
+// 终端容器
+.terminal-box {
+  display: flex;
+  flex-direction: column;
+  width: @screen-width;
+  height: 100%;
+  background-color: @terminal-bg;
+  border-width: @border-width-base;
+  border-style: @border-style-base;
+  border-color: @border-color-dark;
+}
+
+.terminal-text {
+  font-size: @font-size-sm;
+  color: @terminal-text;
+  line-height: 1.3;
+}
+
+.terminal-prefix {
+  font-size: @font-size-sm;
+  color: @terminal-prefix;
+  margin-right: @spacing-xs;
+}
+
+.terminal-input {
+  flex: 1;
+  background-color: transparent;
+  border-width: 0;
+  font-size: @font-size-sm;
+  color: @text-color-light;
+  padding: @spacing-xs;
+}
+
+// 快捷命令容器
+.quick-cmd-box {
+  width: 100%;
+  padding: @spacing-sm;
+  background-color: @bg-medium;
+  border-width: @border-width-base;
+  border-style: @border-style-base;
+  border-color: @border-color-dark;
+}
+
+.cmd-item {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 48%;
+  padding: @spacing-sm;
+  margin-bottom: @spacing-sm;
+  background-color: @bg-light;
+  border-width: @border-width-base;
+  border-style: @border-style-base;
+  border-color: @border-color-light;
+  border-radius: @border-radius-base;
+}
+
+.cmd-text {
+  font-size: @font-size-xs;
+  color: @text-color-light;
+  text-align: center;
+}
+
+// 键盘容器
+.keyboard-box {
+  width: @screen-width;
+  padding: @spacing-xs;
+  background-color: @bg-medium;
+  border-width: @border-width-base;
+  border-style: @border-style-base;
+  border-color: @border-color-dark;
+  border-top-width: @border-width-base;
+  border-top-style: @border-style-base;
+  border-top-color: @border-color-dark;
+}
+
+.key-normal {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 22px;
+  height: 22px;
+  margin: @spacing-xs;
+  background-color: @bg-light;
+  border-width: @border-width-base;
+  border-style: @border-style-base;
+  border-color: @border-color-light;
+  border-radius: @border-radius-sm;
+  font-size: @font-size-xs;
+  color: @text-color-light;
+}
+
+.key-wide {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 60px;
+  height: 22px;
+  margin: @spacing-xs;
+  background-color: @bg-light;
+  border-width: @border-width-base;
+  border-style: @border-style-base;
+  border-color: @border-color-light;
+  border-radius: @border-radius-sm;
+  font-size: @font-size-xs;
+  color: @text-color-light;
+}
+
+.key-func {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 50px;
+  height: 22px;
+  margin: @spacing-xs;
+  background-color: @bg-light;
+  border-width: @border-width-base;
+  border-style: @border-style-base;
+  border-color: @border-color-light;
+  border-radius: @border-radius-sm;
+  font-size: @font-size-xs;
+  color: @text-color-light;
+}
+
+// VNC容器
+.vnc-box {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: @bg-dark;
+  border-width: @border-width-base;
+  border-style: @border-style-base;
+  border-color: @border-color-dark;
+}
+
+.vnc-wrap {
+  width: 100%;
+  height: 100%;
+}
+
+.vnc-img {
+  width: 100%;
+  height: 100%;
+}
+
+// 文件管理容器
+.file-manager-box {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  background-color: @bg-medium;
+  border-width: @border-width-base;
+  border-style: @border-style-base;
+  border-color: @border-color-dark;
+}
+
+.file-item {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  padding: @spacing-sm;
+  border-width: @border-width-base;
+  border-style: @border-style-base;
+  border-color: @border-color-light;
+  border-bottom-width: @border-width-base;
+  border-bottom-style: @border-style-base;
+  border-bottom-color: @border-color-light;
+}
+
+.file-name {
+  font-size: @font-size-sm;
+  color: @text-color-light;
+}
+
+.file-info {
+  font-size: @font-size-xs;
+  color: @text-color-muted;
+}
+
+.file-opt-bar {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-around;
+  padding: @spacing-sm;
+  border-width: @border-width-base;
+  border-style: @border-style-base;
+  border-color: @border-color-dark;
+  border-top-width: @border-width-base;
+  border-top-style: @border-style-base;
+  border-top-color: @border-color-dark;
+}
+
+.opt-btn {
+  font-size: @font-size-sm;
+  color: @text-color-light;
+}
+
+// 查看器模态框
+.viewer-modal {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: @screen-width;
+  height: @screen-height;
+  background-color: rgba(0,0,0,0.8);
+  display: flex;
+  flex-direction: column;
+  padding: @spacing-sm;
+}
+
+.viewer-header {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  padding: @spacing-sm;
+  border-width: @border-width-base;
+  border-style: @border-style-base;
+  border-color: @border-color-light;
+  border-bottom-width: @border-width-base;
+  border-bottom-style: @border-style-base;
+  border-bottom-color: @border-color-light;
+}
+
+.viewer-title {
+  font-size: @font-size-sm;
+  color: @text-color-light;
+}
+
+.close-btn {
+  font-size: @font-size-sm;
+  color: @text-color-error;
+}
+
+.viewer-content {
+  flex: 1;
+  padding: @spacing-sm;
+}
+
+.editor-input {
+  margin: @spacing-sm;
+  height: 100px;
+}
+
+.save-btn {
+  font-size: @font-size-sm;
+  color: @text-color-success;
+  text-align: center;
+  padding: @spacing-sm;
+}
+
+// 关于页面
+.about-page {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: @screen-width;
+  height: @screen-height;
+  background-color: @bg-dark;
+  border-width: @border-width-base;
+  border-style: @border-style-base;
+  border-color: @border-color-dark;
+}
+
+.about-title {
+  font-size: @font-size-base;
+  color: @text-color-success;
+  margin-bottom: @spacing-base;
+}
+
+.about-info {
+  font-size: @font-size-sm;
+  color: @text-color-light;
+  margin-bottom: @spacing-xs;
+}
+
+.about-copyright {
+  font-size: @font-size-xs;
+  color: @text-color-muted;
+  margin-top: @spacing-base;
+}

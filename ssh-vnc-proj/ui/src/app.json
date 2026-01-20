@@ -5,5 +5,9 @@
     "file": "pages/file/file.vue",
     "about": "pages/about/about.vue"
   },
-  "options": { "style": { "lessPaths": ["styles"] } }
+  "options": {
+    "style": {
+      "lessPaths": ["styles"]
+    }
+  }
 }
