@@ -3,6 +3,11 @@
 
 #include <string>
 
+// ✅ 添加 extern "C" 条件编译
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // 列出目录文件
 int file_list(const char* path, char* buf, int buf_len);
 
@@ -29,5 +34,10 @@ int file_chown(const char* path, const char* user);
 
 // 查看属性
 int file_lsattr(const char* path, char* buf, int buf_len);
+
+// ✅ 闭合 extern "C"
+#ifdef __cplusplus
+}
+#endif
 
 #endif

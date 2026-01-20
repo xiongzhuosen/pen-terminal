@@ -4,6 +4,11 @@
 #include <rfb/rfbclient.h>
 #include <string>
 
+// ✅ 添加 extern "C" 条件编译
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // VNC连接
 int vnc_connect(const char* ip, const char* port, const char* pass);
 
@@ -21,5 +26,10 @@ int vnc_send_input(const char* evt_json);
 
 // 发送键盘事件
 int vnc_send_key(const char* key);
+
+// ✅ 闭合 extern "C"
+#ifdef __cplusplus
+}
+#endif
 
 #endif
