@@ -1,76 +1,75 @@
 <template>
-  <div class="keyboard-box">
-    <div class="flex-row justify-center">
-      <div class="key-normal" @click="pressKey('q')">q</div>
-      <div class="key-normal" @click="pressKey('w')">w</div>
-      <div class="key-normal" @click="pressKey('e')">e</div>
-      <div class="key-normal" @click="pressKey('r')">r</div>
-      <div class="key-normal" @click="pressKey('t')">t</div>
-      <div class="key-normal" @click="pressKey('y')">y</div>
-      <div class="key-normal" @click="pressKey('u')">u</div>
-      <div class="key-normal" @click="pressKey('i')">i</div>
-      <div class="key-normal" @click="pressKey('o')">o</div>
-      <div class="key-normal" @click="pressKey('p')">p</div>
-    </div>
-    <div class="flex-row justify-center">
-      <div class="key-normal" @click="pressKey('a')">a</div>
-      <div class="key-normal" @click="pressKey('s')">s</div>
-      <div class="key-normal" @click="pressKey('d')">d</div>
-      <div class="key-normal" @click="pressKey('f')">f</div>
-      <div class="key-normal" @click="pressKey('g')">g</div>
-      <div class="key-normal" @click="pressKey('h')">h</div>
-      <div class="key-normal" @click="pressKey('j')">j</div>
-      <div class="key-normal" @click="pressKey('k')">k</div>
-      <div class="key-normal" @click="pressKey('l')">l</div>
-    </div>
-    <div class="flex-row justify-center">
-      <div class="key-normal" @click="pressKey('z')">z</div>
-      <div class="key-normal" @click="pressKey('x')">x</div>
-      <div class="key-normal" @click="pressKey('c')">c</div>
-      <div class="key-normal" @click="pressKey('v')">v</div>
-      <div class="key-normal" @click="pressKey('b')">b</div>
-      <div class="key-normal" @click="pressKey('n')">n</div>
-      <div class="key-normal" @click="pressKey('m')">m</div>
-      <div class="key-wide" @click="pressKey(' ')">空格</div>
-    </div>
-    <div class="flex-row justify-center">
-      <div class="key-func" @click="pressKey('esc')">ESC</div>
-      <div class="key-func" @click="pressKey('backspace')">删除</div>
-      <div class="key-func" @click="pressKey('enter')">回车</div>
-      <div class="key-func" @click="toggleKeyboard">收起</div>
-    </div>
-  </div>
+  <view class="keyboard">
+    <!-- 第一行：数字+ESC -->
+    <view class="key-row">
+      <view class="key" @click="sendKey('1')"><text>1</text></view>
+      <view class="key" @click="sendKey('2')"><text>2</text></view>
+      <view class="key" @click="sendKey('3')"><text>3</text></view>
+      <view class="key" @click="sendKey('4')"><text>4</text></view>
+      <view class="key" @click="sendKey('5')"><text>5</text></view>
+      <view class="key" @click="sendKey('6')"><text>6</text></view>
+      <view class="key" @click="sendKey('7')"><text>7</text></view>
+      <view class="key" @click="sendKey('8')"><text>8</text></view>
+      <view class="key" @click="sendKey('9')"><text>9</text></view>
+      <view class="key" @click="sendKey('0')"><text>0</text></view>
+      <view class="key key-esc" @click="sendKey('\x1b')"><text>ESC</text></view>
+    </view>
+    <!-- 第二行：字母行1+TAB -->
+    <view class="key-row">
+      <view class="key" @click="sendKey('q')"><text>q</text></view>
+      <view class="key" @click="sendKey('w')"><text>w</text></view>
+      <view class="key" @click="sendKey('e')"><text>e</text></view>
+      <view class="key" @click="sendKey('r')"><text>r</text></view>
+      <view class="key" @click="sendKey('t')"><text>t</text></view>
+      <view class="key" @click="sendKey('y')"><text>y</text></view>
+      <view class="key" @click="sendKey('u')"><text>u</text></view>
+      <view class="key" @click="sendKey('i')"><text>i</text></view>
+      <view class="key" @click="sendKey('o')"><text>o</text></view>
+      <view class="key" @click="sendKey('p')"><text>p</text></view>
+      <view class="key key-func" @click="sendKey('\t')"><text>TAB</text></view>
+    </view>
+    <!-- 第三行：字母行2+ENTER -->
+    <view class="key-row">
+      <view class="key" @click="sendKey('a')"><text>a</text></view>
+      <view class="key" @click="sendKey('s')"><text>s</text></view>
+      <view class="key" @click="sendKey('d')"><text>d</text></view>
+      <view class="key" @click="sendKey('f')"><text>f</text></view>
+      <view class="key" @click="sendKey('g')"><text>g</text></view>
+      <view class="key" @click="sendKey('h')"><text>h</text></view>
+      <view class="key" @click="sendKey('j')"><text>j</text></view>
+      <view class="key" @click="sendKey('k')"><text>k</text></view>
+      <view class="key" @click="sendKey('l')"><text>l</text></view>
+      <view class="key key-func" @click="sendKey('\n')"><text>ENTER</text></view>
+    </view>
+    <!-- 第四行：字母行3+方向键 -->
+    <view class="key-row key-row-last">
+      <view class="key" @click="sendKey('z')"><text>z</text></view>
+      <view class="key" @click="sendKey('x')"><text>x</text></view>
+      <view class="key" @click="sendKey('c')"><text>c</text></view>
+      <view class="key" @click="sendKey('v')"><text>v</text></view>
+      <view class="key" @click="sendKey('b')"><text>b</text></view>
+      <view class="key" @click="sendKey('n')"><text>n</text></view>
+      <view class="key" @click="sendKey('m')"><text>m</text></view>
+      <view class="key key-arrow" @click="sendKey('\x1b[A')"><text>↑</text></view>
+      <view class="key key-arrow" @click="sendKey('\x1b[B')"><text>↓</text></view>
+      <view class="key key-arrow" @click="sendKey('\x1b[D')"><text>←</text></view>
+      <view class="key key-arrow" @click="sendKey('\x1b[C')"><text>→</text></view>
+    </view>
+  </view>
 </template>
 
 <script>
 export default {
-  name: 'VirtualKeyboard',
-  data() {
-    return {
-      show: true
-    }
-  },
+  name: "VirtualKeyboard",
   methods: {
-    pressKey(key) {
-      this.$emit('key-press', key)
-    },
-    toggleKeyboard() {
-      this.show = !this.show
-      this.$emit('toggle', this.show)
+    // 发送键盘按键（触发父组件）
+    sendKey(key) {
+      this.$emit("send-key", key);
     }
   }
-}
+};
 </script>
 
 <style lang="less" scoped>
 @import "../styles/base.less";
-
-.flex-row {
-  display: flex;
-  flex-direction: row;
-}
-
-.justify-center {
-  justify-content: center;
-}
 </style>
