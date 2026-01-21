@@ -3,17 +3,14 @@
 #include <string.h>
 #include <stdlib.h>
 
-// 全局变量
 static char vnc_pass[64] = {0};
 static rfbClient* client = nullptr;
 static float scale = 1.0;
 static const char* SIMULATE_FRAME_BASE64 = "iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAYAAABw4pVUAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAAZdEVYdFNvZnR3YXJlAHBhaW50Lm5ldCA0LjAuNWWFMmUAAABoSURBVHhe7cExAQAAAMKg9U9tDQ+gAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADwD5UAB6h9c4gAAAABJRU5ErkJggg==";
 
-// ✅ 自定义极简JSON解析函数（仅解析 type/x/y 三个字段）
 static int parse_vnc_event(const char* evt_json, char* type, int max_type_len, int* x, int* y) {
     if (!evt_json || !type || !x || !y) return -1;
 
-    // 提取 type 字段（格式："type":"xxx"）
     char* type_pos = strstr((char*)evt_json, "\"type\":\"");
     if (!type_pos) return -2;
     type_pos += 8;
@@ -24,12 +21,10 @@ static int parse_vnc_event(const char* evt_json, char* type, int max_type_len, i
     memcpy(type, type_pos, type_len);
     type[type_len] = '\0';
 
-    // 提取 x 字段（格式："x":数字）
     char* x_pos = strstr((char*)evt_json, "\"x\":");
     if (!x_pos) return -4;
     *x = atoi(x_pos + 4);
 
-    // 提取 y 字段（格式："y":数字）
     char* y_pos = strstr((char*)evt_json, "\"y\":");
     if (!y_pos) return -5;
     *y = atoi(y_pos + 4);
@@ -37,7 +32,6 @@ static int parse_vnc_event(const char* evt_json, char* type, int max_type_len, i
     return 0;
 }
 
-// VNC密码回调函数
 static char* vnc_get_password(rfbClient* cl) {
     return vnc_pass;
 }
@@ -81,7 +75,7 @@ int vnc_read_frame_impl(char* buf, int buf_len) {
     WaitForMessage(client, 10);
     char frame_data[4096] = {0};
     snprintf(frame_data, sizeof(frame_data), "data:image/png;base64,%s", SIMULATE_FRAME_BASE64);
-    
+
     int len = strlen(frame_data);
     if (len > buf_len - 1) len = buf_len - 1;
     memcpy(buf, frame_data, len);
@@ -89,10 +83,10 @@ int vnc_read_frame_impl(char* buf, int buf_len) {
     return len;
 }
 
-int vnc_send_input_impl(const char* evt_json) {
+// ✅ 修正：vnc_send_input_impl → vnc_send_mouse_impl
+int vnc_send_mouse_impl(const char* evt_json) {
     if (!client || !evt_json) return -1;
 
-    // ✅ 用自定义解析替代 jsoncpp
     char type[16] = {0};
     int x = 0, y = 0;
     int ret = parse_vnc_event(evt_json, type, sizeof(type), &x, &y);

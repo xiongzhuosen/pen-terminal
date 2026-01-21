@@ -9,6 +9,9 @@
 #include <md4c-html.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
+#include <pwd.h>
+#include <grp.h>
 
 static void md_output_callback(const MD_CHAR* data, MD_SIZE size, void* userdata) {
     char** ctx = (char**)userdata;
@@ -18,12 +21,12 @@ static void md_output_callback(const MD_CHAR* data, MD_SIZE size, void* userdata
     if (size <= 0 || *remain_len <= 1) return;
     MD_SIZE write_len = size < (MD_SIZE)(*remain_len - 1) ? size : (MD_SIZE)(*remain_len - 1);
     memcpy(buf, data, write_len);
-    
+
     ctx[0] += write_len;
     *remain_len -= write_len;
 }
 
-// ✅ 函数名加 _impl 后缀
+// 原有_impl函数（不变，仅file_chown_impl补实现）
 int file_list_impl(const char* path, char* buf, int buf_len) {
     DIR* dir = opendir(path);
     if (!dir) return -1;
@@ -45,7 +48,7 @@ int file_list_impl(const char* path, char* buf, int buf_len) {
     Json::StreamWriterBuilder writer;
     writer["indentation"] = "";
     std::string json_str = Json::writeString(writer, root);
-    
+
     int len = json_str.length();
     if (len > buf_len - 1) len = buf_len - 1;
     memcpy(buf, json_str.c_str(), len);
@@ -119,8 +122,22 @@ int file_chmod_impl(const char* path, const char* mode) {
     return chmod(path, strtol(mode, nullptr, 8));
 }
 
+// ✅ 补实现：file_chown_impl（解析user:group，调用chown）
 int file_chown_impl(const char* path, const char* user) {
-    return 0;
+    if (!path || !user) return -1;
+    char* colon = strchr((char*)user, ':');
+    if (!colon) return -2;
+
+    char username[64] = {0};
+    char groupname[64] = {0};
+    strncpy(username, user, colon - user);
+    strncpy(groupname, colon + 1, sizeof(groupname) - 1);
+
+    struct passwd* pw = getpwnam(username);
+    struct group* gr = getgrnam(groupname);
+    if (!pw || !gr) return -3;
+
+    return chown(path, pw->pw_uid, gr->gr_gid);
 }
 
 int file_lsattr_impl(const char* path, char* buf, int buf_len) {
@@ -133,4 +150,35 @@ int file_lsattr_impl(const char* path, char* buf, int buf_len) {
     pclose(fp);
     buf[len] = '\0';
     return len;
+}
+
+// ✅ 补实现：file_delete_impl（删除文件/目录）
+int file_delete_impl(const char* path) {
+    if (!path) return -1;
+    struct stat st;
+    if (stat(path, &st) != 0) return -2;
+
+    if (S_ISDIR(st.st_mode)) {
+        // 递归删除目录
+        char cmd[512];
+        snprintf(cmd, sizeof(cmd), "rm -rf %s", path);
+        return system(cmd);
+    } else {
+        // 删除文件
+        return unlink(path);
+    }
+}
+
+// ✅ 补实现：file_rename_impl（重命名）
+int file_rename_impl(const char* old_path, const char* new_path) {
+    if (!old_path || !new_path) return -1;
+    return rename(old_path, new_path);
+}
+
+// ✅ 补实现：file_mkdir_impl（创建目录，递归）
+int file_mkdir_impl(const char* path) {
+    if (!path) return -1;
+    char cmd[512];
+    snprintf(cmd, sizeof(cmd), "mkdir -p %s", path);
+    return system(cmd);
 }

@@ -11,7 +11,7 @@ static int sock_fd = -1;
 static LIBSSH2_SESSION* ssh_session = nullptr;
 static LIBSSH2_CHANNEL* ssh_channel = nullptr;
 
-// ✅ 函数名加 _impl 后缀
+// 原有_impl函数（仅修正ssh_connect_with_key_impl→ssh_connect_key_impl）
 int ssh_global_init_impl() {
     return libssh2_init(0);
 }
@@ -77,7 +77,8 @@ int ssh_connect_impl(const char* ip, const char* port, const char* user, const c
     return 0;
 }
 
-int ssh_connect_with_key_impl(const char* ip, const char* port, const char* user, const char* key_path) {
+// ✅ 修正：ssh_connect_with_key_impl → ssh_connect_key_impl
+int ssh_connect_key_impl(const char* ip, const char* port, const char* user, const char* key_path) {
     if (ssh_session != nullptr) {
         ssh_disconnect_impl();
     }
@@ -165,4 +166,37 @@ int ssh_write_stream_impl(const char* data) {
 int ssh_read_stream_impl(char* buf, int buf_len) {
     if (ssh_channel == nullptr || buf == nullptr || buf_len <= 0) return -1;
     return libssh2_channel_read(ssh_channel, buf, buf_len - 1);
+}
+
+// ✅ 补实现：ssh_send_key_impl（发送SSH按键，支持esc/方向键等）
+int ssh_send_key_impl(const char* key) {
+    if (ssh_channel == nullptr || !key) return -1;
+    char key_seq[16] = {0};
+
+    // 映射特殊按键到SSH终端序列
+    if (strcmp(key, "esc") == 0) {
+        snprintf(key_seq, sizeof(key_seq), "%c", 27); // ESC
+    } else if (strcmp(key, "up") == 0) {
+        snprintf(key_seq, sizeof(key_seq), "%c[%c", 27, 'A'); // ↑
+    } else if (strcmp(key, "down") == 0) {
+        snprintf(key_seq, sizeof(key_seq), "%c[%c", 27, 'B'); // ↓
+    } else if (strcmp(key, "left") == 0) {
+        snprintf(key_seq, sizeof(key_seq), "%c[%c", 27, 'D'); // ←
+    } else if (strcmp(key, "right") == 0) {
+        snprintf(key_seq, sizeof(key_seq), "%c[%c", 27, 'C'); // →
+    } else if (strcmp(key, "tab") == 0) {
+        snprintf(key_seq, sizeof(key_seq), "%c", 9); // Tab
+    } else if (strcmp(key, "enter") == 0) {
+        snprintf(key_seq, sizeof(key_seq), "%c", 10); // Enter
+    } else {
+        // 普通字符
+        snprintf(key_seq, sizeof(key_seq), "%s", key);
+    }
+
+    return libssh2_channel_write(ssh_channel, key_seq, strlen(key_seq));
+}
+
+// ✅ 补实现：ssh_send_esc_impl（发送ESC，vim必备）
+int ssh_send_esc_impl() {
+    return ssh_send_key_impl("esc");
 }
