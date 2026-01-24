@@ -1,115 +1,53 @@
 <template>
-  <view class="quick-cmd">
-    <!-- 快捷命令方块 -->
-    <view 
-      v-for="(cmd, idx) in cmdList" 
-      :key="idx" 
-      class="cmd-btn"
-      @touchstart="onCmdTouch(idx)"
-      @touchend="onCmdTouchEnd"
-      @click="execQuickCmd(cmd.content)"
+  <view class="quick-cmd-panel">
+    <view
+      v-for="(cmd, idx) in quickCmds"
+      :key="idx"
+      class="quick-cmd-btn"
+      @click="execCmd(cmd)"
     >
-      <text>{{ cmd.name }}</text>
+      <text>{{ cmd.label }}</text>
     </view>
-    <!-- 新增命令按钮 -->
-    <view 
-      class="add-btn"
-      @touchstart="onAddTouch"
-      @touchend="onAddTouchEnd"
-      @click="showAddModal"
-    >
-      <text>+新增</text>
-    </view>
-
-    <!-- 新增命令模态框 -->
-    <view class="modal" v-if="showAddModal">
-      <view class="modal-header">
-        <text class="modal-title">新增快捷命令</text>
-        <text class="modal-close" @click="hideAddModal">×</text>
-      </view>
-      <view class="modal-content">
-        <input class="input" v-model="newCmd.name" placeholder="命令名称（如：查看IP）" />
-        <input class="input" v-model="newCmd.content" placeholder="命令内容（如：ifconfig）" />
-        <view class="modal-footer">
-          <view class="btn" @click="addCmd">
-            <text>保存</text>
-          </view>
-        </view>
-      </view>
+    <view class="quick-cmd-btn" @click="addCmd">
+      <text>+ 新增</text>
     </view>
   </view>
 </template>
-
 <script>
 export default {
   name: "QuickCmdPanel",
   data() {
     return {
-      cmdList: [],
-      showAddModal: false,
-      newCmd: { name: "", content: "" },
-      activeCmdIdx: -1,
-      activeAdd: false
+      quickCmds: [
+        { label: "ls", value: "ls -l" },
+        { label: "pwd", value: "pwd" },
+        { label: "df", value: "df -h" },
+        { label: "free", value: "free -m" },
+        { label: "ps", value: "ps -ef" },
+        { label: "clear", value: "clear" },
+        { label: "ifconfig", value: "ifconfig" },
+        { label: "reboot", value: "reboot" },
+        { label: "ping", value: "ping 8.8.8.8" },
+        { label: "netstat", value: "netstat -tuln" }
+      ]
     };
   },
-  onLoad() {
-    this.loadCmdList();
-  },
   methods: {
-    // 加载本地存储的快捷命令（默认8条，可自定义）
-    loadCmdList() {
-      const defaultCmds = [
-        { name: "查看IP", content: "ifconfig" },
-        { name: "磁盘占用", content: "df -h" },
-        { name: "内存占用", content: "free -m" },
-        { name: "赋权777", content: "chmod 777" },
-        { name: "进程查看", content: "ps aux" },
-        { name: "系统信息", content: "uname -a" },
-        { name: "日志查看", content: "tail -n 20 /var/log/syslog" },
-        { name: "清屏", content: "clear" }
-      ];
-      const local = $falcon.storage.get("quickCmdList");
-      this.cmdList = local ? JSON.parse(local) : defaultCmds;
-    },
-    // 执行快捷命令（触发父组件）
-    execQuickCmd(cmd) {
-      this.$emit("exec-quick-cmd", cmd);
-    },
-    // 新增命令相关
-    showAddModal() {
-      this.showAddModal = true;
-      this.newCmd = { name: "", content: "" };
-    },
-    hideAddModal() {
-      this.showAddModal = false;
+    execCmd(cmd) {
+      this.$emit("exec-cmd", cmd.value);
     },
     addCmd() {
-      if (!this.newCmd.name || !this.newCmd.content) {
-        $falcon.toast.show("名称和命令不能为空");
-        return;
+      const input = prompt("输入命令格式：标签|命令内容（例：测试|echo hello）", "测试|echo hello");
+      if (input) {
+        const [label, value] = input.split("|");
+        if (label && value) {
+          this.quickCmds.push({ label, value });
+        }
       }
-      this.cmdList.push({ ...this.newCmd });
-      $falcon.storage.set("quickCmdList", JSON.stringify(this.cmdList));
-      this.hideAddModal();
-      $falcon.toast.show("新增成功");
-    },
-    // 触摸模拟:active
-    onCmdTouch(idx) {
-      this.activeCmdIdx = idx;
-    },
-    onCmdTouchEnd() {
-      this.activeCmdIdx = -1;
-    },
-    onAddTouch() {
-      this.activeAdd = true;
-    },
-    onAddTouchEnd() {
-      this.activeAdd = false;
     }
   }
 };
 </script>
-
 <style lang="less" scoped>
 @import "../styles/base.less";
 </style>

@@ -1,0 +1,28 @@
+#flex-row(@justify: flex-start, @align: center) {
+  display: flex;
+  flex-direction: row;
+  justify-content: @justify;
+  align-items: @align;
+}
+
+#flex-col(@justify: flex-start, @align: center) {
+  display: flex;
+  flex-direction: column;
+  justify-content: @justify;
+  align-items: @align;
+}
+
+#keyboard-key(@width: auto, @height: 26px) {
+  width: @width;
+  height: @height;
+  background-color: #2D2D2D;
+  border-width: 1px;
+  border-color: #666;
+  border-style: solid;
+  border-radius: 4px;
+  color: #FFF;
+  font-size: 11px;
+  text-align: center;
+  line-height: @height;
+  transition: all 0.1s;
+}

@@ -1,162 +1,248 @@
 <template>
   <view class="wrapper">
-    <!-- SSH 连接配置 -->
-    <view class="card">
-      <input class="input" v-model="sshHost" placeholder="SSH 主机（如：192.168.1.1）" />
-      <input class="input" v-model="sshPort" placeholder="SSH 端口（默认：22）" />
-      <input class="input" v-model="sshUser" placeholder="SSH 用户名（如：root）" />
-      <input class="input" v-model="sshPass" placeholder="SSH 密码" type="password" />
-      <input class="input" v-model="sshKeyPath" placeholder="密钥路径（可选）" />
-      <view style="flex-direction: row; justify-content: space-between;">
-        <view class="btn" style="flex: 1; margin-right: 4px;" @click="connectSSH" :class="{ 'btn-active': isConnecting }">
-          <text>密码连接</text>
-        </view>
-        <view class="btn" style="flex: 1;" @click="connectSSHKey" :class="{ 'btn-active': isConnecting }">
-          <text>密钥连接</text>
-        </view>
-      </view>
-      <view class="btn" style="margin-top: 8px;" @click="disconnectSSH" :class="{ 'btn-active': isDisconnecting }">
-        <text>断开连接</text>
-      </view>
+    <view class="tab-bar">
+      <view class="tab-btn" @click="switchPage('index')">首页</view>
+      <view class="tab-btn tab-btn-active" @click="switchPage('ssh')">SSH终端</view>
+      <view class="tab-btn" @click="switchPage('vnc')">VNC远程</view>
+      <view class="tab-btn" @click="switchPage('file')">文件管理</view>
+      <view class="tab-btn" @click="switchPage('about')">关于</view>
     </view>
-
-    <!-- 快捷命令面板 -->
-    <QuickCmdPanel @exec-quick-cmd="execQuickCmd" />
-
-    <!-- 流式终端（仿真·支持 vim/passwd） -->
-    <view class="terminal" ref="terminal">
-      <text>{{ terminalContent }}</text>
+    <view class="page-container ssh-page" v-if="activePage === 'ssh'">
+      <div class="ssh-section">
+        <!-- 连接设置区 -->
+        <div class="connect-bar">
+          <input 
+            class="input ip-input" 
+            v-model="sshConfig.host" 
+            placeholder="SSH 主机：192.168.1.100"
+            @focus="setActiveInput('host')"
+          >
+          <div class="multi-input">
+            <input 
+              class="input" 
+              v-model="sshConfig.port" 
+              placeholder="端口：22" 
+              style="flex: 1;"
+              @focus="setActiveInput('port')"
+            >
+            <input 
+              class="input" 
+              v-model="sshConfig.user" 
+              placeholder="用户：root" 
+              style="flex: 1;"
+              @focus="setActiveInput('user')"
+            >
+            <input 
+              class="input" 
+              v-model="sshConfig.pass" 
+              placeholder="密码：******" 
+              type="password" 
+              style="flex: 1;"
+              @focus="setActiveInput('pass')"
+            >
+          </div>
+          <div class="connect-btn-group">
+            <button class="btn-success" style="flex: 1;" @click="connectSSH" :disabled="isConnected">连接</button>
+            <button class="btn-danger" style="flex: 1;" @click="disconnectSSH" :disabled="!isConnected">断开</button>
+          </div>
+        </div>
+        <!-- 状态条 -->
+        <div class="status-bar">
+          <span class="status-text">● {{ isConnected ? '已连接' : '未连接' }}</span>
+          <span class="status-subtext">编码：UTF-8 | 终端类型：xterm-256color | 流式传输：已启用</span>
+        </div>
+        <!-- 快捷命令面板 -->
+        <quick-cmd-panel @exec-cmd="execQuickCmd" />
+        <!-- 终端区 -->
+        <div class="terminal" ref="terminal" @focus="setActiveInput('terminal')">
+          <div v-for="(line, idx) in terminalLines" :key="idx" style="white-space: pre-wrap;">{{ line }}</div>
+          <span class="terminal-cursor" v-if="isConnected"></span>
+        </div>
+        <!-- 内置键盘（默认显示） -->
+        <virtual-keyboard 
+          :show-keyboard="true"
+          :active-input="activeInput"
+          @key-input="handleKeyInput"
+        />
+      </div>
     </view>
-
-    <!-- 命令输入 -->
-    <view class="card" style="flex-direction: row; align-items: center;">
-      <input class="input" style="flex: 1; margin-bottom: 0; margin-right: 4px;" v-model="cmdInput" placeholder="输入命令" @confirm="execCmd" />
-      <view class="btn" @click="execCmd">
-        <text>执行</text>
-      </view>
-    </view>
-
-    <!-- 内置键盘 -->
-    <VirtualKeyboard @send-key="sendKey" />
   </view>
 </template>
-
 <script>
-import QuickCmdPanel from "../../components/QuickCmdPanel.vue";
-import VirtualKeyboard from "../../components/VirtualKeyboard.vue";
-
+import QuickCmdPanel from '@/components/QuickCmdPanel.vue';
+import VirtualKeyboard from '@/components/VirtualKeyboard.vue';
 export default {
-  name: "SSHPage",
+  name: "ssh",
   components: { QuickCmdPanel, VirtualKeyboard },
   data() {
     return {
-      sshHost: "",
-      sshPort: "22",
-      sshUser: "",
-      sshPass: "",
-      sshKeyPath: "",
+      activePage: "ssh",
+      sshConfig: { host: "", port: "22", user: "root", pass: "" },
       isConnected: false,
-      isConnecting: false,
-      isDisconnecting: false,
-      terminalContent: "=== SSH 仿真终端 ===\n连接后支持 vim/passwd 等交互式命令\n",
-      cmdInput: "",
+      sshConnId: "",
+      terminalLines: [
+        "[root@localhost ~]# ls -l",
+        "total 48",
+        "-rw-r--r-- 1 root root  128 Jan 21 10:00 test.txt",
+        "-rwxr-xr-x 1 root root   45 Jan 20 15:30 deploy.sh",
+        "drwxr-xr-x 2 root root 4096 Jan 19 09:15 docs",
+        "[root@localhost ~]# cd docs",
+        "[root@localhost docs]# ls",
+        "manual.pdf  config.ini",
+        "[root@localhost docs]# echo \"hello world\" > test.log",
+        "[root@localhost docs]# chmod 755 test.log",
+        "[root@localhost docs]# "
+      ],
+      currentCommand: "",
+      activeInput: "terminal",
+      maxTerminalLines: 50,
       streamTimer: null
     };
   },
-  onUnload() {
-    // 清理定时器+断开连接
-    if (this.streamTimer) this.clearInterval(this.streamTimer);
+  beforeDestroy() {
     this.disconnectSSH();
   },
   methods: {
-    // 密码连接
+    switchPage(page) {
+      this.activePage = page;
+      $falcon.navTo(page, { from: "ssh" });
+    },
+    setActiveInput(inputName) {
+      this.activeInput = inputName;
+    },
+    handleKeyInput(key) {
+      switch(this.activeInput) {
+        case 'host':
+          this.sshConfig.host += key.replace(/\n|\t|\b/g, '');
+          break;
+        case 'port':
+          this.sshConfig.port += key.replace(/\D|\n|\t|\b/g, '');
+          break;
+        case 'user':
+          this.sshConfig.user += key.replace(/\n|\t|\b/g, '');
+          break;
+        case 'pass':
+          this.sshConfig.pass += key.replace(/\n|\t|\b/g, '');
+          break;
+        case 'terminal':
+          this.handleTerminalInput(key);
+          break;
+      }
+    },
+    handleTerminalInput(key) {
+      if (!this.isConnected) return;
+      if (key === '\b') {
+        this.currentCommand = this.currentCommand.slice(0, -1);
+        const lastLineIdx = this.terminalLines.length - 1;
+        this.terminalLines[lastLineIdx] = "[root@localhost docs]# " + this.currentCommand;
+      } else if (key === '\n') {
+        this.execCmd();
+      } else {
+        this.currentCommand += key;
+        const lastLineIdx = this.terminalLines.length - 1;
+        this.terminalLines[lastLineIdx] = "[root@localhost docs]# " + this.currentCommand;
+      }
+      this.scrollToBottom();
+    },
     async connectSSH() {
-      if (!this.sshHost || !this.sshUser || !this.sshPass) {
-        $falcon.toast.show("主机/用户名/密码不能为空");
+      if (!this.sshConfig.host) {
+        $falcon.toast("主机不能为空");
         return;
       }
-      this.isConnecting = true;
-      const ret = await $api.ssh_connect(this.sshHost, this.sshPort, this.sshUser, this.sshPass);
-      this.isConnecting = false;
-      if (ret === 0) {
-        this.isConnected = true;
-        this.terminalContent += `\n✅ 连接成功：${this.sshHost}:${this.sshPort}\n`;
-        this.startStreamRead();
-        $falcon.toast.show("SSH 连接成功");
-      } else {
-        this.terminalContent += `\n❌ 连接失败：错误码 ${ret}\n`;
-        $falcon.toast.show("SSH 连接失败");
+      try {
+        const res = await $falcon.ssh_connect({
+          host: this.sshConfig.host,
+          port: parseInt(this.sshConfig.port),
+          user: this.sshConfig.user,
+          pass: this.sshConfig.pass
+        });
+        if (res.code === 0) {
+          this.isConnected = true;
+          this.sshConnId = res.connId;
+          this.terminalLines = this.terminalLines.slice(0, -1).concat("[root@localhost docs]# ");
+          this.currentCommand = "";
+          this.startStream();
+          $falcon.toast("SSH连接成功（支持vim/passwd）");
+          this.scrollToBottom();
+        } else {
+          $falcon.toast(`连接失败：${res.msg}`);
+        }
+      } catch (err) {
+        $falcon.toast(`连接异常：${err.message}`);
       }
     },
-    // 密钥连接
-    async connectSSHKey() {
-      if (!this.sshHost || !this.sshUser || !this.sshKeyPath) {
-        $falcon.toast.show("主机/用户名/密钥路径不能为空");
-        return;
-      }
-      this.isConnecting = true;
-      const ret = await $api.ssh_connect_key(this.sshHost, this.sshPort, this.sshUser, this.sshKeyPath);
-      this.isConnecting = false;
-      if (ret === 0) {
-        this.isConnected = true;
-        this.terminalContent += `\n✅ 密钥连接成功：${this.sshHost}:${this.sshPort}\n`;
-        this.startStreamRead();
-        $falcon.toast.show("SSH 密钥连接成功");
-      } else {
-        this.terminalContent += `\n❌ 密钥连接失败：错误码 ${ret}\n`;
-        $falcon.toast.show("SSH 密钥连接失败");
-      }
-    },
-    // 断开连接
     async disconnectSSH() {
       if (!this.isConnected) return;
-      this.isDisconnecting = true;
-      const ret = await $api.ssh_disconnect();
-      this.isDisconnecting = false;
-      if (ret === 0) {
+      try {
+        await $falcon.ssh_disconnect(this.sshConnId);
         this.isConnected = false;
-        this.terminalContent += `\n🔌 已断开连接\n`;
-        if (this.streamTimer) {
-          this.clearInterval(this.streamTimer);
-          this.streamTimer = null;
-        }
-        $falcon.toast.show("SSH 已断开");
+        this.sshConnId = "";
+        this.addTerminalLine("已断开SSH连接");
+        this.stopStream();
+      } catch (err) {
+        $falcon.toast(`断开失败：${err.message}`);
       }
     },
-    // 执行命令
-    async execCmd() {
-      if (!this.isConnected || !this.cmdInput) return;
-      this.terminalContent += `\n$ ${this.cmdInput}\n`;
-      await $api.ssh_exec(this.cmdInput);
-      this.cmdInput = "";
-    },
-    // 快捷命令执行
-    async execQuickCmd(cmd) {
-      if (!this.isConnected) return;
-      this.terminalContent += `\n$ ${cmd}\n`;
-      await $api.ssh_exec(cmd);
-    },
-    // 发送键盘按键（支持 vim/passwd 交互）
-    async sendKey(key) {
-      if (!this.isConnected) return;
-      await $api.ssh_send_key(key);
-    },
-    // 流式读取终端数据（仿真核心）
-    startStreamRead() {
-      if (this.streamTimer) return;
-      this.streamTimer = this.setInterval(async () => {
-        const data = await $api.ssh_read_stream();
-        if (data) {
-          this.terminalContent += data;
-          // 滚动到底部（Weex 用 scrollTo，替代 overflow:scroll）
-          this.$refs.terminal.scrollTo({ y: 99999 });
+    startStream() {
+      // 启动流式传输（模拟实时读取）
+      this.streamTimer = setInterval(async () => {
+        if (!this.isConnected) return;
+        try {
+          const res = await $falcon.ssh_stream_read({ connId: this.sshConnId });
+          if (res.code === 0 && res.data) {
+            this.addTerminalLine(res.data);
+          }
+        } catch (err) {
+          this.addTerminalLine(`流读取错误：${err.message}`);
+          this.stopStream();
         }
-      }, 100);
+      }, 50);
+    },
+    stopStream() {
+      if (this.streamTimer) {
+        clearInterval(this.streamTimer);
+        this.streamTimer = null;
+      }
+    },
+    execCmd() {
+      if (!this.isConnected || !this.currentCommand.trim()) return;
+      this.addTerminalLine(`[root@localhost docs]# ${this.currentCommand}`);
+      $falcon.ssh_stream_write({
+        connId: this.sshConnId,
+        data: this.currentCommand + "\n"
+      });
+      this.currentCommand = "";
+      this.terminalLines.push("[root@localhost docs]# ");
+      this.scrollToBottom();
+    },
+    execQuickCmd(cmd) {
+      if (!this.isConnected) return;
+      this.addTerminalLine(`[root@localhost docs]# ${cmd}`);
+      $falcon.ssh_stream_write({
+        connId: this.sshConnId,
+        data: cmd + "\n"
+      });
+      this.terminalLines.push("[root@localhost docs]# ");
+      this.scrollToBottom();
+    },
+    addTerminalLine(line) {
+      this.terminalLines.push(line);
+      if (this.terminalLines.length > this.maxTerminalLines) {
+        this.terminalLines.shift();
+      }
+      this.scrollToBottom();
+    },
+    scrollToBottom() {
+      this.$nextTick(() => {
+        const terminal = this.$refs.terminal;
+        if (terminal.scrollTo) {
+          terminal.scrollTo({ top: terminal.scrollHeight });
+        }
+      });
     }
   }
 };
 </script>
-
 <style lang="less" scoped>
 @import "../../styles/base.less";
 </style>

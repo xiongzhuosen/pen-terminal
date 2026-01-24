@@ -1,350 +1,451 @@
-// ====================== Weex 严格兼容变量 ======================
-@bg-dark: #121212;
-@bg-card: #1a1a1a;
-@bg-btn: #2a2a2a;
-@bg-btn-active: #3a3a3a;
-@text-primary: #e0e0e0;
-@text-secondary: #9e9e9e;
-@accent-ssh: #4CAF50;
-@accent-vnc: #FF9800;
-@accent-file: #2196F3;
-@border-color: #444444;
-@shadow-color: #000000;
-@shadow-blur: 4px;
-@radius-8: 8px;
-@radius-4: 4px;
+/* src/styles/base.less（仅修改3处 overflow: auto → overflow: hidden） */
+@import './var.less';
+@import './mixin.less';
 
-// ====================== 基础类（单类名·无嵌套·无伪类·零报错） ======================
-// 根容器
 .wrapper {
-  width: 260px;
-  height: 640px;
-  background-color: @bg-dark;
-  padding: 8px;
-  flex-direction: column;
+  width: @screen-w;
+  height: @screen-h;
+  background-color: @color-bg;
+  padding: 6px;
+  #flex-col(flex-start, flex-start);
+  border-width: 2px;
+  border-color: #333;
+  border-style: solid;
+  border-radius: 10px;
+  overflow: hidden;
+  position: relative;
+  margin: 0 auto;
 }
 
-// 卡片容器
-.card {
-  background-color: @bg-card;
-  border-width: 1px;
-  border-style: solid;
-  border-color: @border-color;
-  border-radius: @radius-8; /* 单个值，Weex 支持 */
-  padding: 8px;
-  margin-bottom: 8px;
-  box-shadow: 0px 2px @shadow-blur @shadow-color; /* 仅 x y blur 纯色 */
+.tab-bar {
+  #flex-row(flex-start, center);
+  gap: @gap-sm;
+  margin-bottom: 6px;
+  height: 28px;
+  width: 100%;
 }
-
-// 按钮
-.btn {
-  background-color: @bg-btn;
+.tab-btn {
+  flex: 1;
+  background-color: @color-key;
   border-width: 1px;
+  border-color: @color-border;
   border-style: solid;
-  border-color: @border-color;
-  border-radius: @radius-4; /* 单个值 */
-  padding: 8px;
+  border-radius: 4px;
+  padding: 4px;
+  color: @color-text;
+  font-size: @font-sm;
   text-align: center;
-  color: @text-primary;
-  font-size: 12px;
-  box-shadow: 0px 2px @shadow-blur @shadow-color;
+  line-height: 18px;
+  transition: all 0.2s;
+  &:hover { background-color: #383838; }
+}
+.tab-btn-active {
+  background-color: #3D3D3D;
+  border-width: 1px;
+  border-color: @color-primary;
+  border-style: solid;
 }
 
-.btn-active {
-  background-color: @bg-btn-active;
+.page-container {
+  flex: 1;
+  #flex-row(flex-start, flex-start);
+  gap: @gap-md;
+  height: 226px;
+  width: 100%;
 }
 
-// 输入框
+.card {
+  background-color: @color-card;
+  border-width: 1px;
+  border-color: @color-border;
+  border-style: solid;
+  border-radius: 4px;
+  color: @color-text;
+  font-size: @font-sm;
+  padding: 6px;
+}
+
+.btn {
+  height: 28px;
+  line-height: 16px;
+  text-align: center;
+  background-color: @color-key;
+  border-width: 1px;
+  border-color: @color-border;
+  border-style: solid;
+  border-radius: 4px;
+  color: @color-text;
+  font-size: @font-sm;
+  padding: 6px;
+  transition: all 0.2s;
+  &:hover { background-color: #383838; }
+  &:active { background-color: #3D3D3D; transform: scale(0.98); }
+}
+.btn-primary {
+  background-color: @color-primary;
+  border-width: 1px;
+  border-color: @color-primary;
+  border-style: solid;
+}
+.btn-warning {
+  background-color: @color-warning;
+  border-width: 1px;
+  border-color: @color-warning;
+  border-style: solid;
+}
+.btn-success {
+  background-color: @color-success;
+  border-width: 1px;
+  border-color: @color-success;
+  border-style: solid;
+}
+.btn-danger {
+  background-color: @color-danger;
+  border-width: 1px;
+  border-color: @color-danger;
+  border-style: solid;
+}
+
 .input {
-  background-color: @bg-card;
+  height: 28px;
+  background-color: @color-card;
   border-width: 1px;
+  border-color: @color-border;
   border-style: solid;
-  border-color: @border-color;
-  border-radius: @radius-4; /* 单个值 */
-  padding: 8px;
-  color: @text-primary;
-  font-size: 12px;
-  margin-bottom: 8px;
+  border-radius: 4px;
+  color: @color-text;
+  font-size: @font-sm;
+  padding: 6px;
+  &::placeholder {
+    color: @color-text-secondary;
+    font-size: 11px;
+  }
 }
 
-// SSH 终端（流式·仿真）
+.placeholder {
+  color: @color-text-secondary;
+  font-size: 11px;
+  text-align: center;
+  line-height: 1.4;
+}
+
+/* 104键键盘样式 */
+.keyboard-wrapper {
+  background-color: @color-card;
+  border-width: 1px;
+  border-color: @color-border;
+  border-style: solid;
+  border-radius: 6px;
+  padding: 6px;
+  box-shadow: 0 1px 3px #000;
+  width: 100%;
+}
+.kb-row {
+  #flex-row(flex-start, center);
+  gap: 4px;
+  height: 26px;
+  margin-bottom: 4px;
+  width: 100%;
+}
+.kb-key {
+  #keyboard-key();
+  flex: 1;
+  min-width: 22px;
+  max-width: 38px;
+  &:hover { background-color: #383838; }
+  &:active { background-color: #3D3D3D; transform: scale(0.95); }
+}
+.kb-esc { background-color: #F44336; flex: 0.8; }
+.kb-func { background-color: #00BCD4; }
+.kb-print { background-color: #795548; flex: 1; }
+.kb-scroll { background-color: #795548; flex: 1; }
+.kb-pause { background-color: #795548; flex: 1.1; }
+.kb-tab { background-color: #8BC34A; flex: 1; }
+.kb-caps { background-color: @color-warning; flex: 1.1; }
+.kb-shift { background-color: @color-primary; flex: 1.3; }
+.kb-ctrl { background-color: #9C27B0; flex: 1; }
+.kb-alt { background-color: @color-success; flex: 1; }
+.kb-win { background-color: @color-success; flex: 1; }
+.kb-menu { background-color: #607D8B; flex: 1; }
+.kb-backspace { background-color: #E91E63; flex: 1.2; }
+.kb-enter { background-color: #FFC107; flex: 1.3; }
+.kb-space { background-color: #607D8B; flex: 4; }
+.kb-edit { background-color: #FF5722; }
+.kb-arrow { background-color: #FF5722; }
+.kb-num-lock { background-color: @color-warning; flex: 1.1; }
+.kb-num { background-color: #795548; }
+.kb-num-op { background-color: #9E9E9E; }
+.kb-num-enter { background-color: #FFC107; flex: 1.1; }
+
+/* SSH/VNC页面样式 */
+.ssh-page, .vnc-page {
+  #flex-col(flex-start, flex-start);
+  padding-bottom: 4px;
+  width: 100%;
+}
+.ssh-section, .vnc-section {
+  width: 100%;
+  #flex-col(flex-start, flex-start);
+  gap: 4px;
+}
+
+.connect-bar {
+  #flex-col(flex-start, flex-start);
+  gap: 4px;
+  width: 100%;
+}
+.ip-input { width: 100%; }
+.multi-input {
+  #flex-row(flex-start, center);
+  gap: 4px;
+  width: 100%;
+}
+.connect-btn-group {
+  #flex-row(flex-start, center);
+  gap: 4px;
+  width: 100%;
+}
+
+.status-bar {
+  background-color: @color-card;
+  border-width: 1px;
+  border-color: @color-border;
+  border-style: solid;
+  border-radius: 4px;
+  padding: 3px 6px;
+  #flex-row(space-between, center);
+  align-items: center;
+  height: 22px;
+  width: 100%;
+}
+.status-text { color: @color-success; font-size: 10px; font-weight: bold; }
+.status-subtext { color: @color-text-secondary; font-size: 9px; }
+
 .terminal {
-  background-color: #000000;
+  background-color: #000;
   border-width: 1px;
+  border-color: @color-success;
   border-style: solid;
-  border-color: @accent-ssh;
-  border-radius: @radius-4; /* 单个值 */
-  padding: 8px;
-  color: #00FF00;
+  border-radius: 4px;
+  padding: 6px;
+  color: @color-terminal;
   font-size: 10px;
-  overflow: hidden; /* Weex 仅支持 visible/hidden，滚动用 scrollTo */
   flex: 1;
+  min-height: 80px;
+  position: relative;
+  width: 100%;
+  overflow: hidden; /* 原 auto → 改为 hidden */
+}
+.terminal-cursor {
+  display: flex;
+  width: 8px;
+  height: 14px;
+  background-color: @color-terminal;
+  animation: blink 1s linear infinite;
+}
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
 }
 
-// VNC 画布
-.vnc-canvas {
-  background-color: #000000;
-  border-width: 1px;
-  border-style: solid;
-  border-color: @accent-vnc;
-  border-radius: @radius-4; /* 单个值 */
+/* 文件管理样式 */
+.file-section {
   flex: 1;
+  #flex-col(flex-start, flex-start);
+  gap: 6px;
+  width: 100%;
 }
-
-.vnc-frame {
-  width: 244px;
-  height: 300px;
-}
-
-.scale-tip {
-  position: absolute;
-  top: 4px;
-  right: 4px;
-  background-color: rgba(0,0,0,0.7);
-  color: @accent-vnc;
-  font-size: 10px;
-  padding: 2px 4px;
-  border-width: 1px;
-  border-style: solid;
-  border-color: @accent-vnc;
-  border-radius: @radius-4; /* 单个值 */
-}
-
-// 文件列表
+.file-top-bar { #flex-row(flex-start, center); gap: 4px; height: 28px; width: 100%; }
+.file-path { flex: 3; }
+.file-refresh { flex: 1; }
+.file-new-group { flex: 2; #flex-row(flex-start, center); gap: 3px; }
+.file-new-btn { flex: 1; background-color: @color-success; border-width: 1px; border-color: @color-success; border-style: solid; font-size: 10px; }
 .file-list {
   flex: 1;
-  overflow: hidden; /* Weex 仅支持 visible/hidden */
+  background-color: @color-card;
+  border-width: 1px;
+  border-color: @color-border;
+  border-style: solid;
+  border-radius: 6px;
+  padding: 4px;
+  #flex-col(flex-start, flex-start);
+  gap: 4px;
+  width: 100%;
+  overflow: hidden; /* 原 auto → 改为 hidden */
 }
-
 .file-item {
-  background-color: @bg-card;
+  background-color: @color-key;
+  border-width: 1px;
+  border-color: @color-border;
+  border-style: solid;
+  border-radius: 4px;
+  padding: 4px 6px;
+  #flex-row(space-between, center);
+  align-items: center;
+  height: 32px;
+  width: 100%;
+  &:hover { background-color: #383838; border-width: 1px; border-color: @color-primary; border-style: solid; }
+}
+.file-name { color: @color-text; font-size: @font-sm; font-weight: 500; }
+.file-size { color: @color-text-secondary; font-size: 9px; }
+.file-opt-group { #flex-row(flex-start, center); gap: 3px; }
+.file-opt-chmod, .file-opt-chown, .file-opt-lsattr, .file-opt-rename, .file-opt-del {
+  width: 36px;
+  height: 22px;
+  background-color: @color-key;
   border-width: 1px;
   border-style: solid;
-  border-color: @border-color;
-  border-radius: @radius-4; /* 单个值 */
-  padding: 8px;
-  margin-bottom: 4px;
-  flex-direction: row;
-  justify-content: space-between;
-}
-
-.file-name {
-  color: @text-primary;
-  font-size: 12px;
-}
-
-.file-info {
-  color: @text-secondary;
-  font-size: 10px;
-}
-
-// 文件操作栏
-.file-opt {
-  flex-direction: row;
-  justify-content: space-between;
-  margin-bottom: 8px;
-}
-
-.opt-btn {
-  background-color: @bg-btn;
-  border-width: 1px;
-  border-style: solid;
-  border-color: @border-color;
-  border-radius: @radius-4; /* 单个值 */
-  padding: 4px;
-  color: @text-primary;
-  font-size: 10px;
-  box-shadow: 0px 2px @shadow-blur @shadow-color;
-  flex: 1;
-  margin-right: 4px;
-}
-
-.opt-last {
-  margin-right: 0;
-}
-
-.chmod {
-  border-color: @accent-ssh;
-  color: @accent-ssh;
-}
-
-.chown {
-  border-color: @accent-vnc;
-  color: @accent-vnc;
-}
-
-.lsattr {
-  border-color: @accent-file;
-  color: @accent-file;
-}
-
-.del {
-  border-color: #F44336;
-  color: #F44336;
-}
-
-// 内置键盘
-.keyboard {
-  background-color: @bg-card;
-  border-width: 1px;
-  border-style: solid;
-  border-color: @border-color;
-  border-radius: @radius-8; /* 单个值 */
-  padding: 4px;
-  box-shadow: 0px 2px @shadow-blur @shadow-color;
-}
-
-.key-row {
-  flex-direction: row;
-  justify-content: space-between;
-  margin-bottom: 4px;
-}
-
-.key-row-last {
-  margin-bottom: 0;
-}
-
-.key {
-  background-color: @bg-btn;
-  border-width: 1px;
-  border-style: solid;
-  border-color: @border-color;
-  border-radius: @radius-4; /* 单个值 */
-  padding: 4px;
-  color: @text-primary;
-  font-size: 10px;
-  width: 28px;
-  height: 28px;
+  border-radius: 2px;
+  color: @color-text;
+  font-size: 8px;
   text-align: center;
-  box-shadow: 0px 2px @shadow-blur @shadow-color;
+  line-height: 20px;
 }
+.file-opt-chmod { border-color: @color-success; color: @color-success; }
+.file-opt-chown { border-color: @color-warning; color: @color-warning; }
+.file-opt-lsattr { border-color: @color-primary; color: @color-primary; }
+.file-opt-rename { border-color: #FFC107; color: #FFC107; }
+.file-opt-del { border-color: @color-danger; color: @color-danger; }
 
-.key-func {
-  background-color: @accent-ssh;
-  color: #FFFFFF;
-}
-
-.key-esc {
-  background-color: #F44336;
-  color: #FFFFFF;
-}
-
-.key-arrow {
-  background-color: @accent-vnc;
-  color: #FFFFFF;
-}
-
-// 模态框（修复 border-radius 多值问题，拆分为单个值）
+/* 模态框样式 */
 .modal {
   position: absolute;
   top: 0;
   left: 0;
-  width: 260px;
-  height: 640px;
-  background-color: rgba(0,0,0,0.8);
-  padding: 16px;
-  flex-direction: column;
-  justify-content: center;
+  width: @screen-w;
+  height: @screen-h;
+  background-color: rgba(0,0,0,0.9);
+  padding: 20px;
+  #flex-row(center, center);
+  z-index: 10;
 }
-
-.modal-header {
-  background-color: @bg-card;
-  border-width: 1px;
-  border-style: solid;
-  border-color: @border-color;
-  border-top-left-radius: @radius-8; /* 单个值，替代 8px 8px 0 0 */
-  border-top-right-radius: @radius-8;
-  border-bottom-left-radius: 0;
-  border-bottom-right-radius: 0;
-  padding: 8px;
-  flex-direction: row;
-  justify-content: space-between;
-}
-
-.modal-title {
-  color: @text-primary;
-  font-size: 14px;
-  font-weight: bold;
-}
-
-.modal-close {
-  color: #F44336;
-  font-size: 14px;
-}
-
 .modal-content {
-  background-color: @bg-card;
+  background-color: @color-card;
   border-width: 1px;
+  border-color: @color-border;
   border-style: solid;
-  border-color: @border-color;
-  border-top-left-radius: 0;
-  border-top-right-radius: 0;
-  border-bottom-left-radius: @radius-8; /* 单个值，替代 0 0 8px 8px */
-  border-bottom-right-radius: @radius-8;
-  padding: 16px;
-  box-shadow: 0px 2px @shadow-blur @shadow-color;
-  overflow: hidden; /* Weex 仅支持 visible/hidden */
+  border-radius: 8px;
+  padding: 12px;
+  width: 85%;
+  box-shadow: 0 3px 10px #000;
+  max-height: 200px;
+  overflow: hidden; /* 原 auto → 改为 hidden */
 }
-
-.modal-footer {
-  flex-direction: row;
-  justify-content: flex-end;
-  margin-top: 8px;
+.modal-title {
+  color: @color-text;
+  font-size: @font-md;
+  font-weight: bold;
+  margin-bottom: 10px;
+  text-align: center;
 }
-
-// 快捷命令面板
-.quick-cmd {
-  flex-direction: row;
-  flex-wrap: wrap;
-  margin-bottom: 8px;
-}
-
-.cmd-btn {
-  background-color: @accent-ssh;
+.modal-body { color: @color-text-secondary; font-size: 10px; margin-bottom: 12px; }
+.prop-item { #flex-row(flex-start, center); align-items: center; gap: 6px; margin-bottom: 6px; }
+.prop-label { flex: 1; color: @color-text; font-size: 10px; text-align: right; }
+.prop-input { flex: 2; height: 24px; font-size: 10px; }
+.prop-note { flex: 1; color: #9E9E9E; font-size: @font-xs; font-style: italic; }
+.modal-footer { #flex-row(center, center); gap: 8px; }
+.modal-btn-confirm {
+  width: 50px;
+  height: 26px;
+  background-color: @color-success;
   border-width: 1px;
+  border-color: @color-success;
   border-style: solid;
-  border-color: @accent-ssh;
-  border-radius: @radius-4; /* 单个值 */
-  padding: 4px 8px;
-  color: #FFFFFF;
+  border-radius: 3px;
+  color: @color-text;
   font-size: 10px;
-  margin-right: 4px;
-  margin-bottom: 4px;
-  box-shadow: 0px 2px @shadow-blur @shadow-color;
+  text-align: center;
+  line-height: 24px;
 }
-
-.add-btn {
-  background-color: @accent-file;
+.modal-btn-cancel {
+  width: 50px;
+  height: 26px;
+  background-color: @color-danger;
   border-width: 1px;
+  border-color: @color-danger;
   border-style: solid;
-  border-color: @accent-file;
-  border-radius: @radius-4; /* 单个值 */
-  padding: 4px 8px;
-  color: #FFFFFF;
+  border-radius: 3px;
+  color: @color-text;
   font-size: 10px;
-  box-shadow: 0px 2px @shadow-blur @shadow-color;
+  text-align: center;
+  line-height: 24px;
 }
 
-// 文件查看器
-.viewer-content {
-  background-color: @bg-card;
-  border-width: 1px;
+/* VNC专属样式 */
+.vnc-canvas {
+  background-color: #000;
+  border-width: 2px;
+  border-color: @color-warning;
   border-style: solid;
-  border-color: @border-color;
-  border-radius: @radius-4; /* 单个值 */
-  padding: 8px;
-  color: @text-primary;
-  font-size: 12px;
-  overflow: hidden; /* Weex 仅支持 visible/hidden */
+  border-radius: 6px;
+  height: 110px;
+  position: relative;
+  box-shadow: 0 0 6px #ff9800;
+  width: 100%;
+}
+.vnc-frame {
+  width: 100%;
+  height: 100%;
+  background-color: #111;
+  border-width: 1px;
+  border-color: @color-warning;
+  border-style: dashed;
+  #flex-row(center, center);
+}
+.vnc-control-bar {
+  #flex-row(flex-start, center);
+  gap: 4px;
+  height: 28px;
+  width: 100%;
+}
+.vnc-mouse-group, .vnc-zoom-group, .vnc-func-group { flex: 2; #flex-row(flex-start, center); gap: 3px; }
+.vnc-wheel-group { flex: 1; #flex-row(flex-start, center); gap: 3px; }
+.vnc-mouse-btn, .vnc-wheel-btn, .vnc-zoom-btn, .vnc-func-btn {
   flex: 1;
+  background-color: @color-key;
+  border-width: 1px;
+  border-color: @color-border;
+  border-style: solid;
+  border-radius: 3px;
+  color: @color-text;
+  font-size: 10px;
+  text-align: center;
+  line-height: 26px;
+}
+.vnc-mouse-btn-active { background-color: @color-warning; border-width: 1px; border-color: @color-warning; border-style: solid; }
+.vnc-wheel-btn { background-color: @color-warning; border-width: 1px; border-color: @color-warning; border-style: solid; }
+.vnc-setting { background-color: #9C27B0; border-width: 1px; border-color: #9C27B0; border-style: solid; }
+.vnc-fullscreen, .vnc-exit { background-color: @color-danger; border-width: 1px; border-color: @color-danger; border-style: solid; }
+.vnc-keyboard-wrapper { margin-top: 6px; }
+
+/* 快捷命令面板 */
+.quick-cmd-panel {
+  #flex-row(flex-start, center);
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 4px 0;
+  width: 100%;
+}
+.quick-cmd-btn {
+  #keyboard-key(auto, 26px);
+  padding: 0 8px;
+  font-size: 11px;
+  background-color: #2D2D2D;
+  &:hover { background-color: #383838; }
 }
 
-.viewer-md {
-  color: @text-primary;
-  line-height: 1.5;
+/* MD渲染样式 */
+.md-viewer {
+  width: 100%;
+  height: 100%;
+  #flex-col(flex-start, flex-start);
+  gap: 2px;
 }
-
-.viewer-hex {
-  color: #00FF00;
-  font-family: monospace;
-}
+.md-h1 { font-size: @font-md; font-weight: bold; color: @color-primary; margin: 4px 0; }
+.md-h2 { font-size: @font-sm; font-weight: bold; color: @color-success; margin: 3px 0; }
+.md-h3 { font-size: @font-sm; font-weight: bold; color: @color-warning; margin: 2px 0; }
+.md-list { font-size: @font-sm; color: @color-text; padding-left: 8px; margin: 1px 0; }
+.md-code { font-size: @font-sm; color: @color-terminal; background-color: #000; padding: 2px 4px; margin: 2px 0; display: flex; }
+.md-img { font-size: @font-sm; color: @color-danger; margin: 2px 0; }
+.md-link { font-size: @font-sm; color: @color-primary; text-decoration: underline; margin: 2px 0; }
+.md-text { font-size: @font-sm; color: @color-text; margin: 1px 0; }

@@ -1,15 +1,14 @@
 {
-  "pages": {
-    "index": "pages/index/index.vue",
-    "ssh": "pages/ssh/ssh.vue",
-    "vnc": "pages/vnc/vnc.vue",
-    "file": "pages/file/file.vue",
-    "about": "pages/about/about.vue"
-  },
+  "pages": [
+    "pages/index/index.vue",
+    "pages/ssh/ssh.vue",
+    "pages/vnc/vnc.vue",
+    "pages/file/file.vue",
+    "pages/about/about.vue"
+  ],
   "window": {
-    "backgroundTextStyle": "light",
+    "navigationBarTitleText": "SSH/VNC工具",
     "navigationBarBackgroundColor": "#121212",
-    "navigationBarTitleText": "SSH/VNC 工具",
     "navigationBarTextStyle": "white"
   }
 }
